@@ -110,6 +110,22 @@ export async function updateProduct(
   if (error) throw new Error(error.message);
 }
 
+export async function updateProductSortOrders(
+  supabase: SupabaseClient,
+  updates: { id: string; sortOrder: number }[],
+): Promise<void> {
+  await Promise.all(
+    updates.map(async ({ id, sortOrder }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({ sort_order: sortOrder })
+        .eq("id", id);
+
+      if (error) throw new Error(error.message);
+    }),
+  );
+}
+
 export async function deleteProduct(
   supabase: SupabaseClient,
   id: string,
@@ -161,7 +177,10 @@ export async function getThumbnailMap(
   if (error) throw new Error(error.message);
 
   const map: Record<string, string> = {};
-  for (const row of (data ?? []) as { product_id: string; image_url: string }[]) {
+  for (const row of (data ?? []) as {
+    product_id: string;
+    image_url: string;
+  }[]) {
     if (!map[row.product_id]) map[row.product_id] = row.image_url;
   }
 

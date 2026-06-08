@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { ProductCard } from "@/components/customer/ProductCard";
+import { BackButton } from "@/components/BackButton";
+import { MenuClient } from "@/components/customer/MenuClient";
 import { getCategories } from "@/lib/data/categories";
 import {
   getThumbnailMap,
@@ -16,9 +16,10 @@ export default async function MenuPage({
 }) {
   const { cat } = await searchParams;
   const supabase = await createClient();
-  const categories = await getCategories(supabase);
-  const activeCat = cat ?? null;
-  const products = await getVisibleProductsByCategory(supabase, activeCat);
+  const [categories, products] = await Promise.all([
+    getCategories(supabase),
+    getVisibleProductsByCategory(supabase, null),
+  ]);
   const thumbnails = await getThumbnailMap(
     supabase,
     products.map((product) => product.id),
@@ -26,50 +27,15 @@ export default async function MenuPage({
 
   return (
     <main className="mx-auto max-w-md p-4">
-      <div className="mb-4 flex gap-2 overflow-x-auto">
-        <Tab href="/menu" active={!activeCat} label="전체" />
-        {categories.map((category) => (
-          <Tab
-            key={category.id}
-            href={`/menu?cat=${category.id}`}
-            active={activeCat === category.id}
-            label={category.name}
-          />
-        ))}
+      <div className="mb-3">
+        <BackButton href="/" label="메인" />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            thumbnail={thumbnails[product.id]}
-          />
-        ))}
-      </div>
-      {products.length === 0 && (
-        <p className="py-10 text-center text-gray-500">상품이 없습니다.</p>
-      )}
+      <MenuClient
+        categories={categories}
+        products={products}
+        thumbnails={thumbnails}
+        initialCat={cat ?? null}
+      />
     </main>
-  );
-}
-
-function Tab({
-  href,
-  active,
-  label,
-}: {
-  href: string;
-  active: boolean;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`whitespace-nowrap rounded-full border px-4 py-1 text-sm ${
-        active ? "bg-black text-white" : "bg-white"
-      }`}
-    >
-      {label}
-    </Link>
   );
 }

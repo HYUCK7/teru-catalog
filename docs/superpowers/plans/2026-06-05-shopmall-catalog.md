@@ -61,6 +61,7 @@ shopmall/
 ### Task 1: Next.js + TypeScript + Tailwind 스캐폴드
 
 **Files:**
+
 - Create: `package.json`, `tsconfig.json`, `next.config.ts`, `app/layout.tsx`, `app/globals.css`, `app/(customer)/page.tsx`
 
 - [ ] **Step 1: 기존 plan/docs 보존하며 Next 앱 생성**
@@ -68,10 +69,12 @@ shopmall/
 이미 `docs/`, `plan.md`, `.git`이 있으므로 현재 디렉토리에 직접 생성한다.
 
 Run:
+
 ```bash
 cd /Users/jaehyuck/dev/shopmall
 npx create-next-app@latest . --typescript --tailwind --app --src-dir=false --import-alias "@/*" --eslint --no-turbopack --use-npm
 ```
+
 프롬프트에서 기존 파일 덮어쓰기 충돌이 나면 `docs/`, `plan.md`, `.gitignore`는 유지하도록 한다(생성기는 빈 디렉토리 가정이므로, 충돌 시 임시 폴더에 생성 후 파일을 복사하는 방식으로 처리).
 
 - [ ] **Step 2: 개발 서버 기동 확인**
@@ -102,6 +105,7 @@ git commit -m "chore: Next.js + TypeScript + Tailwind 스캐폴드"
 ### Task 2: Vitest 테스트 환경 구성
 
 **Files:**
+
 - Create: `vitest.config.ts`, `test/setup.ts`, `lib/sample.ts`, `lib/sample.test.ts`
 - Modify: `package.json` (scripts)
 
@@ -136,6 +140,7 @@ import "@testing-library/jest-dom/vitest";
 - [ ] **Step 3: package.json 스크립트 추가**
 
 `"scripts"`에 추가:
+
 ```json
 "test": "vitest run",
 "test:watch": "vitest"
@@ -147,12 +152,15 @@ import "@testing-library/jest-dom/vitest";
 // lib/sample.ts
 export const add = (a: number, b: number) => a + b;
 ```
+
 ```ts
 // lib/sample.test.ts
 import { describe, it, expect } from "vitest";
 import { add } from "./sample";
 describe("add", () => {
-  it("두 수를 더한다", () => { expect(add(2, 3)).toBe(5); });
+  it("두 수를 더한다", () => {
+    expect(add(2, 3)).toBe(5);
+  });
 });
 ```
 
@@ -172,6 +180,7 @@ git commit -m "chore: Vitest 테스트 환경 구성"
 ### Task 3: shadcn/ui 초기화
 
 **Files:**
+
 - Create: `components.json`, `components/ui/*`, `lib/utils.ts`
 
 - [ ] **Step 1: shadcn 초기화**
@@ -198,6 +207,7 @@ git commit -m "chore: shadcn/ui 초기화 및 기본 컴포넌트 추가"
 ### Task 4: Supabase 프로젝트 연결 및 환경변수
 
 **Files:**
+
 - Create: `.env.local`, `.env.example`
 - Modify: `.gitignore` (이미 `.env*.local` 무시 중인지 확인)
 
@@ -212,6 +222,7 @@ Run: `npm i @supabase/supabase-js @supabase/ssr`
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
+
 실제 값은 Supabase 대시보드(Project Settings → API)에서 받아 `.env.local`에 채운다. 로컬 개발은 `npx supabase start`로 로컬 인스턴스를 써도 된다(아래 Task 5).
 
 - [ ] **Step 3: Commit**
@@ -224,6 +235,7 @@ git commit -m "chore: Supabase 클라이언트 의존성 및 env 템플릿"
 ### Task 5: DB 스키마 마이그레이션
 
 **Files:**
+
 - Create: `supabase/migrations/0001_init.sql`
 
 - [ ] **Step 1: Supabase CLI 초기화(로컬 개발용)**
@@ -298,6 +310,7 @@ git commit -m "feat(db): 초기 스키마 마이그레이션(설정/카테고리
 ### Task 6: RLS 및 Storage 정책 마이그레이션
 
 **Files:**
+
 - Create: `supabase/migrations/0002_rls_storage.sql`
 
 - [ ] **Step 1: RLS + 버킷 정책 SQL 작성**
@@ -362,6 +375,7 @@ git commit -m "feat(db): RLS 정책 및 Storage 버킷/정책"
 ### Task 7: Supabase 클라이언트 & 타입
 
 **Files:**
+
 - Create: `lib/supabase/types.ts`, `lib/supabase/client.ts`, `lib/supabase/server.ts`
 
 - [ ] **Step 1: DB row 타입 작성**
@@ -417,7 +431,7 @@ import { createBrowserClient } from "@supabase/ssr";
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 }
 ```
@@ -440,14 +454,14 @@ export async function createClient() {
         setAll: (toSet) => {
           try {
             toSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, options),
             );
           } catch {
             // Server Component에서 호출 시 무시 (미들웨어가 갱신 담당)
           }
         },
       },
-    }
+    },
   );
 }
 ```
@@ -471,6 +485,7 @@ git commit -m "feat: Supabase 클라이언트(브라우저/서버) 및 DB 타입
 ### Task 8: 순수 검증 함수
 
 **Files:**
+
 - Create: `lib/validation.ts`, `lib/validation.test.ts`
 
 - [ ] **Step 1: 실패하는 테스트 작성**
@@ -491,17 +506,29 @@ describe("validateProductInput", () => {
     expect(r.errors.name).toBeDefined();
   });
   it("가격이 음수면 에러", () => {
-    const r = validateProductInput({ name: "셔츠", price: -1, categoryId: "c1" });
+    const r = validateProductInput({
+      name: "셔츠",
+      price: -1,
+      categoryId: "c1",
+    });
     expect(r.ok).toBe(false);
     expect(r.errors.price).toBeDefined();
   });
   it("카테고리가 없으면 에러", () => {
-    const r = validateProductInput({ name: "셔츠", price: 1000, categoryId: "" });
+    const r = validateProductInput({
+      name: "셔츠",
+      price: 1000,
+      categoryId: "",
+    });
     expect(r.ok).toBe(false);
     expect(r.errors.categoryId).toBeDefined();
   });
   it("정상 입력은 ok", () => {
-    const r = validateProductInput({ name: "셔츠", price: 1000, categoryId: "c1" });
+    const r = validateProductInput({
+      name: "셔츠",
+      price: 1000,
+      categoryId: "c1",
+    });
     expect(r.ok).toBe(true);
   });
 });
@@ -555,13 +582,17 @@ export function validateProductInput(input: {
   return Object.keys(errors).length ? fail(errors) : ok();
 }
 
-export function validateCategoryInput(input: { name: string }): ValidationResult {
+export function validateCategoryInput(input: {
+  name: string;
+}): ValidationResult {
   return input.name.trim()
     ? ok()
     : fail({ name: "카테고리 이름을 입력하세요." });
 }
 
-export function validateSettingsInput(input: { shop_name: string }): ValidationResult {
+export function validateSettingsInput(input: {
+  shop_name: string;
+}): ValidationResult {
   return input.shop_name.trim()
     ? ok()
     : fail({ shop_name: "가게명을 입력하세요." });
@@ -583,6 +614,7 @@ git commit -m "feat: 입력 검증 순수 함수 + 테스트"
 ### Task 9: 데이터 계층 — 상품 조회(노출 필터)
 
 **Files:**
+
 - Create: `test/mock-supabase.ts`, `lib/data/products.ts`, `lib/data/products.test.ts`
 
 - [ ] **Step 1: Supabase mock 헬퍼 작성**
@@ -610,7 +642,9 @@ export function makeQuery(result: QueryResult) {
 
 export function makeClient(byTable: Record<string, QueryResult>) {
   return {
-    from: vi.fn((table: string) => makeQuery(byTable[table] ?? { data: [], error: null })),
+    from: vi.fn((table: string) =>
+      makeQuery(byTable[table] ?? { data: [], error: null }),
+    ),
   };
 }
 ```
@@ -641,7 +675,7 @@ describe("getVisibleProductsByCategory", () => {
       products: { data: null, error: { message: "boom" } },
     });
     await expect(
-      getVisibleProductsByCategory(client as never, "c1")
+      getVisibleProductsByCategory(client as never, "c1"),
     ).rejects.toThrow("boom");
   });
 });
@@ -657,11 +691,15 @@ Expected: FAIL — 함수 없음.
 ```ts
 // lib/data/products.ts
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Product, ProductImage, ProductWithImages } from "@/lib/supabase/types";
+import type {
+  Product,
+  ProductImage,
+  ProductWithImages,
+} from "@/lib/supabase/types";
 
 export async function getVisibleProductsByCategory(
   supabase: SupabaseClient,
-  categoryId: string | null
+  categoryId: string | null,
 ): Promise<Product[]> {
   let query = supabase
     .from("products")
@@ -676,7 +714,7 @@ export async function getVisibleProductsByCategory(
 
 export async function getProductWithImages(
   supabase: SupabaseClient,
-  id: string
+  id: string,
 ): Promise<ProductWithImages | null> {
   const { data: product, error } = await supabase
     .from("products")
@@ -712,6 +750,7 @@ git commit -m "feat(data): 상품 조회(노출 필터/상세+이미지) + 테�
 ### Task 10: 데이터 계층 — 상품 쓰기(CRUD + 이미지)
 
 **Files:**
+
 - Modify: `lib/data/products.ts`
 - Create: `lib/data/products.write.test.ts`
 
@@ -748,8 +787,12 @@ describe("createProduct", () => {
     const { client } = insertClient(null, { message: "fail" });
     await expect(
       createProduct(client as never, {
-        name: "셔츠", price: 1000, categoryId: "c1", description: "", isVisible: true,
-      })
+        name: "셔츠",
+        price: 1000,
+        categoryId: "c1",
+        description: "",
+        isVisible: true,
+      }),
     ).rejects.toThrow("fail");
   });
 });
@@ -774,7 +817,7 @@ export type ProductWriteInput = {
 
 export async function createProduct(
   supabase: SupabaseClient,
-  input: ProductWriteInput
+  input: ProductWriteInput,
 ): Promise<Product> {
   const { data, error } = await supabase
     .from("products")
@@ -794,7 +837,7 @@ export async function createProduct(
 export async function updateProduct(
   supabase: SupabaseClient,
   id: string,
-  input: ProductWriteInput
+  input: ProductWriteInput,
 ): Promise<void> {
   const { error } = await supabase
     .from("products")
@@ -811,7 +854,7 @@ export async function updateProduct(
 
 export async function deleteProduct(
   supabase: SupabaseClient,
-  id: string
+  id: string,
 ): Promise<void> {
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) throw new Error(error.message);
@@ -821,24 +864,29 @@ export async function addProductImage(
   supabase: SupabaseClient,
   productId: string,
   imageUrl: string,
-  sortOrder: number
+  sortOrder: number,
 ): Promise<void> {
-  const { error } = await supabase
-    .from("product_images")
-    .insert({ product_id: productId, image_url: imageUrl, sort_order: sortOrder });
+  const { error } = await supabase.from("product_images").insert({
+    product_id: productId,
+    image_url: imageUrl,
+    sort_order: sortOrder,
+  });
   if (error) throw new Error(error.message);
 }
 
 export async function deleteProductImage(
   supabase: SupabaseClient,
-  imageId: string
+  imageId: string,
 ): Promise<void> {
-  const { error } = await supabase.from("product_images").delete().eq("id", imageId);
+  const { error } = await supabase
+    .from("product_images")
+    .delete()
+    .eq("id", imageId);
   if (error) throw new Error(error.message);
 }
 
 export async function getAllProducts(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ): Promise<Product[]> {
   const { data, error } = await supabase
     .from("products")
@@ -864,6 +912,7 @@ git commit -m "feat(data): 상품 CRUD 및 이미지 추가/삭제 + 테스트"
 ### Task 11: 데이터 계층 — 카테고리 & 설정
 
 **Files:**
+
 - Create: `lib/data/categories.ts`, `lib/data/categories.test.ts`, `lib/data/settings.ts`, `lib/data/settings.test.ts`
 
 - [ ] **Step 1: 카테고리 테스트 작성**
@@ -877,13 +926,18 @@ import { makeClient } from "@/test/mock-supabase";
 describe("getCategories", () => {
   it("sort_order 순으로 카테고리를 반환한다", async () => {
     const client = makeClient({
-      categories: { data: [{ id: "c1", name: "상의", sort_order: 0 }], error: null },
+      categories: {
+        data: [{ id: "c1", name: "상의", sort_order: 0 }],
+        error: null,
+      },
     });
     const rows = await getCategories(client as never);
     expect(rows[0].name).toBe("상의");
   });
   it("에러 시 throw", async () => {
-    const client = makeClient({ categories: { data: null, error: { message: "x" } } });
+    const client = makeClient({
+      categories: { data: null, error: { message: "x" } },
+    });
     await expect(getCategories(client as never)).rejects.toThrow("x");
   });
 });
@@ -898,7 +952,9 @@ Run: `npx vitest run lib/data/categories.test.ts` → FAIL 확인 후 구현:
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Category } from "@/lib/supabase/types";
 
-export async function getCategories(supabase: SupabaseClient): Promise<Category[]> {
+export async function getCategories(
+  supabase: SupabaseClient,
+): Promise<Category[]> {
   const { data, error } = await supabase
     .from("categories")
     .select("*")
@@ -910,7 +966,7 @@ export async function getCategories(supabase: SupabaseClient): Promise<Category[
 export async function createCategory(
   supabase: SupabaseClient,
   name: string,
-  sortOrder: number
+  sortOrder: number,
 ): Promise<Category> {
   const { data, error } = await supabase
     .from("categories")
@@ -924,15 +980,18 @@ export async function createCategory(
 export async function updateCategory(
   supabase: SupabaseClient,
   id: string,
-  fields: { name?: string; sort_order?: number }
+  fields: { name?: string; sort_order?: number },
 ): Promise<void> {
-  const { error } = await supabase.from("categories").update(fields).eq("id", id);
+  const { error } = await supabase
+    .from("categories")
+    .update(fields)
+    .eq("id", id);
   if (error) throw new Error(error.message);
 }
 
 export async function deleteCategory(
   supabase: SupabaseClient,
-  id: string
+  id: string,
 ): Promise<void> {
   const { error } = await supabase.from("categories").delete().eq("id", id);
   if (error) throw new Error(error.message); // 소속 상품 있으면 FK restrict 에러 메시지 전달
@@ -958,7 +1017,10 @@ describe("getSettings", () => {
         select: () => ({
           eq: () => ({
             single: () =>
-              Promise.resolve({ data: { id: 1, shop_name: "가게" }, error: null }),
+              Promise.resolve({
+                data: { id: 1, shop_name: "가게" },
+                error: null,
+              }),
           }),
         }),
       }),
@@ -978,7 +1040,9 @@ Run: `npx vitest run lib/data/settings.test.ts` → FAIL 후 구현:
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SiteSettings } from "@/lib/supabase/types";
 
-export async function getSettings(supabase: SupabaseClient): Promise<SiteSettings> {
+export async function getSettings(
+  supabase: SupabaseClient,
+): Promise<SiteSettings> {
   const { data, error } = await supabase
     .from("site_settings")
     .select("*")
@@ -990,7 +1054,7 @@ export async function getSettings(supabase: SupabaseClient): Promise<SiteSetting
 
 export async function updateSettings(
   supabase: SupabaseClient,
-  fields: Partial<Omit<SiteSettings, "id" | "updated_at">>
+  fields: Partial<Omit<SiteSettings, "id" | "updated_at">>,
 ): Promise<void> {
   const { error } = await supabase
     .from("site_settings")
@@ -1003,6 +1067,7 @@ export async function updateSettings(
 - [ ] **Step 6: 통과 확인 후 커밋**
 
 Run: `npx vitest run lib/data` → 전부 PASS.
+
 ```bash
 git add lib/data
 git commit -m "feat(data): 카테고리/설정 조회·변경 + 테스트"
@@ -1015,6 +1080,7 @@ git commit -m "feat(data): 카테고리/설정 조회·변경 + 테스트"
 ### Task 12: /admin 세션 가드 미들웨어
 
 **Files:**
+
 - Create: `middleware.ts`, `lib/supabase/middleware.ts`
 
 - [ ] **Step 1: 세션 갱신 헬퍼 작성**
@@ -1036,14 +1102,16 @@ export async function updateSession(request: NextRequest) {
           toSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
           toSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
   const isAdmin = path.startsWith("/admin");
   const isLogin = path === "/admin/login";
@@ -1093,6 +1161,7 @@ git commit -m "feat(auth): /admin 세션 가드 미들웨어"
 ### Task 13: 관리자 로그인 페이지 + 로그아웃
 
 **Files:**
+
 - Create: `app/admin/login/page.tsx`, `actions/auth.ts`, `components/admin/AdminNav.tsx`
 
 - [ ] **Step 1: 로그인/로그아웃 Server Action**
@@ -1165,11 +1234,15 @@ import { Button } from "@/components/ui/button";
 export function AdminNav() {
   return (
     <nav className="flex flex-wrap items-center gap-4 border-b p-4 text-sm">
-      <Link href="/admin/settings" className="font-medium">사이트 설정</Link>
+      <Link href="/admin/settings" className="font-medium">
+        사이트 설정
+      </Link>
       <Link href="/admin/categories">카테고리</Link>
       <Link href="/admin/products">상품</Link>
       <form action={logout} className="ml-auto">
-        <Button variant="outline" size="sm">로그아웃</Button>
+        <Button variant="outline" size="sm">
+          로그아웃
+        </Button>
       </form>
     </nav>
   );
@@ -1195,6 +1268,7 @@ git commit -m "feat(auth): 관리자 로그인/로그아웃 및 관리자 네비
 ### Task 14: 이미지 업로드 유틸 + 업로더 컴포넌트
 
 **Files:**
+
 - Create: `lib/upload.ts`, `lib/upload.test.ts`, `components/admin/ImageUploader.tsx`
 
 - [ ] **Step 1: 업로드 파일 검증 테스트(순수 함수)**
@@ -1243,7 +1317,7 @@ export async function uploadImage(
   supabase: SupabaseClient,
   bucket: "public-assets" | "products",
   path: string,
-  file: File
+  file: File,
 ): Promise<string> {
   const check = validateImageFile(file);
   if (!check.ok) throw new Error(check.error);
@@ -1303,7 +1377,12 @@ export function ImageUploader({
 
   return (
     <div className="space-y-1">
-      <input type="file" accept="image/*" onChange={handleChange} disabled={busy} />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleChange}
+        disabled={busy}
+      />
       {busy && <p className="text-sm text-gray-500">업로드 중...</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
@@ -1323,6 +1402,7 @@ git commit -m "feat: 이미지 업로드 검증/유틸 및 업로더 컴포넌�
 ### Task 15: 사이트 설정 페이지 + Server Action
 
 **Files:**
+
 - Create: `actions/settings.ts`, `app/admin/settings/page.tsx`, `components/admin/SettingsForm.tsx`
 
 - [ ] **Step 1: 설정 저장 Server Action**
@@ -1384,32 +1464,71 @@ export function SettingsForm({ initial }: { initial: SiteSettings }) {
     <form action={action} className="max-w-lg space-y-4 p-4">
       <div>
         <Label>로고</Label>
-        {logoUrl && <img src={logoUrl} alt="logo" className="my-2 h-16 object-contain" />}
-        <ImageUploader bucket="public-assets" pathPrefix="logo" onUploaded={setLogoUrl} />
+        {logoUrl && (
+          <img src={logoUrl} alt="logo" className="my-2 h-16 object-contain" />
+        )}
+        <ImageUploader
+          bucket="public-assets"
+          pathPrefix="logo"
+          onUploaded={setLogoUrl}
+        />
         <input type="hidden" name="logo_url" value={logoUrl} />
       </div>
       <div>
         <Label>대표 배너</Label>
-        {bannerUrl && <img src={bannerUrl} alt="banner" className="my-2 h-24 w-full object-cover" />}
-        <ImageUploader bucket="public-assets" pathPrefix="banner" onUploaded={setBannerUrl} />
+        {bannerUrl && (
+          <img
+            src={bannerUrl}
+            alt="banner"
+            className="my-2 h-24 w-full object-cover"
+          />
+        )}
+        <ImageUploader
+          bucket="public-assets"
+          pathPrefix="banner"
+          onUploaded={setBannerUrl}
+        />
         <input type="hidden" name="banner_url" value={bannerUrl} />
       </div>
-      <Field name="shop_name" label="가게명" defaultValue={initial.shop_name} error={state?.errors?.shop_name} />
+      <Field
+        name="shop_name"
+        label="가게명"
+        defaultValue={initial.shop_name}
+        error={state?.errors?.shop_name}
+      />
       <div>
         <Label htmlFor="intro">소개 문구</Label>
         <Textarea id="intro" name="intro" defaultValue={initial.intro} />
       </div>
-      <Field name="kakao_channel_url" label="카톡 채널 링크" defaultValue={initial.kakao_channel_url ?? ""} />
+      <Field
+        name="kakao_channel_url"
+        label="카톡 채널 링크"
+        defaultValue={initial.kakao_channel_url ?? ""}
+      />
       <Field name="phone" label="전화번호" defaultValue={initial.phone ?? ""} />
-      <Field name="instagram" label="인스타 계정" defaultValue={initial.instagram ?? ""} />
+      <Field
+        name="instagram"
+        label="인스타 계정"
+        defaultValue={initial.instagram ?? ""}
+      />
       {state?.ok && <p className="text-sm text-green-600">저장되었습니다.</p>}
-      <Button type="submit" disabled={pending}>{pending ? "저장 중..." : "저장"}</Button>
+      <Button type="submit" disabled={pending}>
+        {pending ? "저장 중..." : "저장"}
+      </Button>
     </form>
   );
 }
 
-function Field({ name, label, defaultValue, error }: {
-  name: string; label: string; defaultValue: string; error?: string;
+function Field({
+  name,
+  label,
+  defaultValue,
+  error,
+}: {
+  name: string;
+  label: string;
+  defaultValue: string;
+  error?: string;
 }) {
   return (
     <div>
@@ -1462,6 +1581,7 @@ git commit -m "feat(admin): 사이트 설정 페이지 및 저장 액션"
 ### Task 16: 카테고리 관리 페이지 + 액션
 
 **Files:**
+
 - Create: `actions/categories.ts`, `app/admin/categories/page.tsx`, `components/admin/CategoryManager.tsx`
 
 - [ ] **Step 1: 카테고리 액션**
@@ -1472,7 +1592,10 @@ git commit -m "feat(admin): 사이트 설정 페이지 및 저장 액션"
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
-  createCategory, updateCategory, deleteCategory, getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getCategories,
 } from "@/lib/data/categories";
 import { validateCategoryInput } from "@/lib/validation";
 
@@ -1503,7 +1626,10 @@ export async function removeCategory(id: string) {
   try {
     await deleteCategory(supabase, id);
   } catch {
-    return { ok: false, error: "이 카테고리에 속한 상품이 있어 삭제할 수 없습니다." };
+    return {
+      ok: false,
+      error: "이 카테고리에 속한 상품이 있어 삭제할 수 없습니다.",
+    };
   }
   revalidatePath("/admin/categories");
   revalidatePath("/menu");
@@ -1518,7 +1644,11 @@ export async function removeCategory(id: string) {
 "use client";
 import { useState } from "react";
 import type { Category } from "@/lib/supabase/types";
-import { addCategory, renameCategory, removeCategory } from "@/actions/categories";
+import {
+  addCategory,
+  renameCategory,
+  removeCategory,
+} from "@/actions/categories";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1531,7 +1661,9 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
     <div className="max-w-md space-y-4 p-4">
       <form action={action} className="flex gap-2">
         <Input name="name" placeholder="새 카테고리 이름" />
-        <Button type="submit" disabled={pending}>추가</Button>
+        <Button type="submit" disabled={pending}>
+          추가
+        </Button>
       </form>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       {msg && <p className="text-sm text-red-600">{msg}</p>}
@@ -1609,6 +1741,7 @@ git commit -m "feat(admin): 카테고리 관리 페이지 및 액션"
 ### Task 17: 상품 목록 페이지
 
 **Files:**
+
 - Create: `app/admin/products/page.tsx`
 
 - [ ] **Step 1: 상품 목록 페이지 작성**
@@ -1636,21 +1769,32 @@ export default async function AdminProductsPage() {
       <AdminNav />
       <div className="flex items-center justify-between p-4">
         <h1 className="text-xl font-bold">상품 관리</h1>
-        <Link href="/admin/products/new"><Button>+ 상품 추가</Button></Link>
+        <Link href="/admin/products/new">
+          <Button>+ 상품 추가</Button>
+        </Link>
       </div>
       <ul className="divide-y">
         {products.map((p) => (
           <li key={p.id} className="flex items-center gap-3 p-4">
             <span className="flex-1">{p.name}</span>
-            <span className="text-sm text-gray-500">{catName(p.category_id)}</span>
+            <span className="text-sm text-gray-500">
+              {catName(p.category_id)}
+            </span>
             <span className="text-sm">{p.price.toLocaleString()}원</span>
             <span className={p.is_visible ? "text-green-600" : "text-gray-400"}>
               {p.is_visible ? "노출" : "숨김"}
             </span>
-            <Link href={`/admin/products/${p.id}`} className="text-sm underline">편집</Link>
+            <Link
+              href={`/admin/products/${p.id}`}
+              className="text-sm underline"
+            >
+              편집
+            </Link>
           </li>
         ))}
-        {products.length === 0 && <li className="p-4 text-gray-500">등록된 상품이 없습니다.</li>}
+        {products.length === 0 && (
+          <li className="p-4 text-gray-500">등록된 상품이 없습니다.</li>
+        )}
       </ul>
     </div>
   );
@@ -1671,6 +1815,7 @@ git commit -m "feat(admin): 상품 목록 페이지"
 ### Task 18: 상품 등록/수정 폼 + 액션
 
 **Files:**
+
 - Create: `actions/products.ts`, `app/admin/products/[id]/page.tsx`, `components/admin/ProductForm.tsx`
 
 - [ ] **Step 1: 상품 액션**
@@ -1682,8 +1827,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
-  createProduct, updateProduct, deleteProduct,
-  addProductImage, deleteProductImage,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  addProductImage,
+  deleteProductImage,
 } from "@/lib/data/products";
 import { validateProductInput } from "@/lib/validation";
 
@@ -1692,7 +1840,7 @@ type SaveResult = { ok: boolean; errors: Record<string, string>; id?: string };
 export async function saveProduct(
   productId: string | null,
   _prev: unknown,
-  formData: FormData
+  formData: FormData,
 ): Promise<SaveResult> {
   const name = String(formData.get("name") ?? "");
   const price = Number(formData.get("price") ?? 0);
@@ -1716,7 +1864,9 @@ export async function saveProduct(
 
   // 신규 이미지 URL들 (콤마 구분 hidden 필드)
   const newImages = String(formData.get("new_image_urls") ?? "")
-    .split(",").map((s) => s.trim()).filter(Boolean);
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   for (let i = 0; i < newImages.length; i++) {
     await addProductImage(supabase, id, newImages[i], i);
   }
@@ -1758,7 +1908,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 export function ProductForm({
-  categories, product,
+  categories,
+  product,
 }: {
   categories: Category[];
   product: ProductWithImages | null;
@@ -1774,16 +1925,27 @@ export function ProductForm({
         <div className="my-2 flex flex-wrap gap-2">
           {product?.images.map((img) => (
             <div key={img.id} className="relative">
-              <img src={img.image_url} alt="" className="h-20 w-20 rounded object-cover" />
+              <img
+                src={img.image_url}
+                alt=""
+                className="h-20 w-20 rounded object-cover"
+              />
               <button
                 type="button"
                 onClick={() => removeImage(img.id, product.id)}
-                className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1 text-xs text-white"
-              >×</button>
+                className="absolute -top-1 -right-1 rounded-full bg-red-600 px-1 text-xs text-white"
+              >
+                ×
+              </button>
             </div>
           ))}
           {newUrls.map((u) => (
-            <img key={u} src={u} alt="" className="h-20 w-20 rounded object-cover ring-2 ring-green-500" />
+            <img
+              key={u}
+              src={u}
+              alt=""
+              className="h-20 w-20 rounded object-cover ring-2 ring-green-500"
+            />
           ))}
         </div>
         <ImageUploader
@@ -1797,41 +1959,65 @@ export function ProductForm({
       <div>
         <Label htmlFor="name">상품명</Label>
         <Input id="name" name="name" defaultValue={product?.name ?? ""} />
-        {state?.errors?.name && <p className="text-sm text-red-600">{state.errors.name}</p>}
+        {state?.errors?.name && (
+          <p className="text-sm text-red-600">{state.errors.name}</p>
+        )}
       </div>
 
       <div>
         <Label htmlFor="category_id">카테고리</Label>
         <select
-          id="category_id" name="category_id"
+          id="category_id"
+          name="category_id"
           defaultValue={product?.category_id ?? ""}
           className="block w-full rounded border p-2"
         >
           <option value="">선택</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
           ))}
         </select>
-        {state?.errors?.categoryId && <p className="text-sm text-red-600">{state.errors.categoryId}</p>}
+        {state?.errors?.categoryId && (
+          <p className="text-sm text-red-600">{state.errors.categoryId}</p>
+        )}
       </div>
 
       <div>
         <Label htmlFor="price">가격</Label>
-        <Input id="price" name="price" type="number" defaultValue={product?.price ?? 0} />
-        {state?.errors?.price && <p className="text-sm text-red-600">{state.errors.price}</p>}
+        <Input
+          id="price"
+          name="price"
+          type="number"
+          defaultValue={product?.price ?? 0}
+        />
+        {state?.errors?.price && (
+          <p className="text-sm text-red-600">{state.errors.price}</p>
+        )}
       </div>
 
       <div>
         <Label htmlFor="description">설명</Label>
-        <Textarea id="description" name="description" defaultValue={product?.description ?? ""} />
+        <Textarea
+          id="description"
+          name="description"
+          defaultValue={product?.description ?? ""}
+        />
       </div>
 
       <label className="flex items-center gap-2">
-        <input type="checkbox" name="is_visible" defaultChecked={product?.is_visible ?? true} />
+        <input
+          type="checkbox"
+          name="is_visible"
+          defaultChecked={product?.is_visible ?? true}
+        />
         노출하기
       </label>
 
-      <Button type="submit" disabled={pending}>{pending ? "저장 중..." : "저장"}</Button>
+      <Button type="submit" disabled={pending}>
+        {pending ? "저장 중..." : "저장"}
+      </Button>
     </form>
   );
 }
@@ -1867,10 +2053,14 @@ export default async function ProductEditPage({
     <div>
       <AdminNav />
       <div className="flex items-center justify-between p-4">
-        <h1 className="text-xl font-bold">{isNew ? "상품 추가" : "상품 수정"}</h1>
+        <h1 className="text-xl font-bold">
+          {isNew ? "상품 추가" : "상품 수정"}
+        </h1>
         {!isNew && product && (
           <form action={removeProduct.bind(null, product.id)}>
-            <Button variant="destructive" size="sm">삭제</Button>
+            <Button variant="destructive" size="sm">
+              삭제
+            </Button>
           </form>
         )}
       </div>
@@ -1899,6 +2089,7 @@ git commit -m "feat(admin): 상품 등록/수정/삭제 폼 및 액션"
 ### Task 19: 고객 공용 컴포넌트(상품 카드 · 문의 버튼 · 슬라이더)
 
 **Files:**
+
 - Create: `components/customer/ProductCard.tsx`, `components/customer/ContactButtons.tsx`, `components/customer/ImageSlider.tsx`
 
 - [ ] **Step 1: 상품 카드**
@@ -1908,11 +2099,23 @@ git commit -m "feat(admin): 상품 등록/수정/삭제 폼 및 액션"
 import Link from "next/link";
 import type { Product } from "@/lib/supabase/types";
 
-export function ProductCard({ product, thumbnail }: { product: Product; thumbnail?: string }) {
+export function ProductCard({
+  product,
+  thumbnail,
+}: {
+  product: Product;
+  thumbnail?: string;
+}) {
   return (
     <Link href={`/products/${product.id}`} className="block">
       <div className="aspect-square w-full overflow-hidden rounded bg-gray-100">
-        {thumbnail && <img src={thumbnail} alt={product.name} className="h-full w-full object-cover" />}
+        {thumbnail && (
+          <img
+            src={thumbnail}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
+        )}
       </div>
       <div className="mt-1 text-sm">{product.name}</div>
       <div className="font-bold">{product.price.toLocaleString()}원</div>
@@ -1929,8 +2132,10 @@ import type { SiteSettings } from "@/lib/supabase/types";
 
 export function ContactButtons({ settings }: { settings: SiteSettings }) {
   const items: { href: string; label: string }[] = [];
-  if (settings.kakao_channel_url) items.push({ href: settings.kakao_channel_url, label: "💬 카톡 문의" });
-  if (settings.phone) items.push({ href: `tel:${settings.phone}`, label: "📞 전화" });
+  if (settings.kakao_channel_url)
+    items.push({ href: settings.kakao_channel_url, label: "💬 카톡 문의" });
+  if (settings.phone)
+    items.push({ href: `tel:${settings.phone}`, label: "📞 전화" });
   if (settings.instagram) {
     const ig = settings.instagram.startsWith("http")
       ? settings.instagram
@@ -1942,9 +2147,14 @@ export function ContactButtons({ settings }: { settings: SiteSettings }) {
     <div className="flex flex-col gap-2">
       {items.map((it) => (
         <a
-          key={it.label} href={it.href} target="_blank" rel="noopener noreferrer"
+          key={it.label}
+          href={it.href}
+          target="_blank"
+          rel="noopener noreferrer"
           className="rounded bg-black py-3 text-center text-white"
-        >{it.label}</a>
+        >
+          {it.label}
+        </a>
       ))}
     </div>
   );
@@ -1965,7 +2175,9 @@ export function ImageSlider({ images }: { images: ProductImage[] }) {
     <div className="flex w-full snap-x snap-mandatory overflow-x-auto">
       {images.map((img) => (
         <img
-          key={img.id} src={img.image_url} alt=""
+          key={img.id}
+          src={img.image_url}
+          alt=""
           className="aspect-square w-full flex-none snap-center object-cover"
         />
       ))}
@@ -1977,6 +2189,7 @@ export function ImageSlider({ images }: { images: ProductImage[] }) {
 - [ ] **Step 4: 타입체크 + 커밋**
 
 Run: `npx tsc --noEmit` → 에러 없음.
+
 ```bash
 git add components/customer
 git commit -m "feat(customer): 상품카드/문의버튼/이미지슬라이더 컴포넌트"
@@ -1985,6 +2198,7 @@ git commit -m "feat(customer): 상품카드/문의버튼/이미지슬라이더 �
 ### Task 20: 메인(랜딩) 페이지
 
 **Files:**
+
 - Modify: `app/(customer)/page.tsx`
 
 - [ ] **Step 1: 메인 페이지 구현**
@@ -2000,17 +2214,29 @@ export default async function HomePage() {
   const s = await getSettings(supabase);
   return (
     <main className="mx-auto max-w-md p-4 text-center">
-      {s.logo_url
-        ? <img src={s.logo_url} alt={s.shop_name} className="mx-auto my-4 h-16 object-contain" />
-        : <h1 className="my-4 text-2xl font-bold">{s.shop_name || "쇼핑몰"}</h1>}
+      {s.logo_url ? (
+        <img
+          src={s.logo_url}
+          alt={s.shop_name}
+          className="mx-auto my-4 h-16 object-contain"
+        />
+      ) : (
+        <h1 className="my-4 text-2xl font-bold">{s.shop_name || "쇼핑몰"}</h1>
+      )}
       {s.banner_url && (
-        <img src={s.banner_url} alt="" className="my-4 w-full rounded object-cover" />
+        <img
+          src={s.banner_url}
+          alt=""
+          className="my-4 w-full rounded object-cover"
+        />
       )}
       {s.intro && <p className="my-4 text-gray-600">{s.intro}</p>}
       <Link
         href="/menu"
         className="mt-6 block rounded bg-black py-4 text-lg font-medium text-white"
-      >📂 메뉴 보기 →</Link>
+      >
+        📂 메뉴 보기 →
+      </Link>
     </main>
   );
 }
@@ -2030,6 +2256,7 @@ git commit -m "feat(customer): 메인(랜딩) 페이지"
 ### Task 21: 메뉴 페이지(카테고리 탭 + 그리드)
 
 **Files:**
+
 - Create: `app/(customer)/menu/page.tsx`, `lib/data/products.ts` (썸네일 헬퍼 추가)
 
 - [ ] **Step 1: 카테고리별 대표 썸네일 헬퍼 추가**
@@ -2040,7 +2267,7 @@ git commit -m "feat(customer): 메인(랜딩) 페이지"
 // lib/data/products.ts (append)
 export async function getThumbnailMap(
   supabase: SupabaseClient,
-  productIds: string[]
+  productIds: string[],
 ): Promise<Record<string, string>> {
   if (productIds.length === 0) return {};
   const { data, error } = await supabase
@@ -2050,7 +2277,10 @@ export async function getThumbnailMap(
     .order("sort_order", { ascending: true });
   if (error) throw new Error(error.message);
   const map: Record<string, string> = {};
-  for (const row of (data ?? []) as { product_id: string; image_url: string }[]) {
+  for (const row of (data ?? []) as {
+    product_id: string;
+    image_url: string;
+  }[]) {
     if (!map[row.product_id]) map[row.product_id] = row.image_url;
   }
   return map;
@@ -2066,7 +2296,10 @@ export async function getThumbnailMap(
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories } from "@/lib/data/categories";
-import { getVisibleProductsByCategory, getThumbnailMap } from "@/lib/data/products";
+import {
+  getVisibleProductsByCategory,
+  getThumbnailMap,
+} from "@/lib/data/products";
 import { ProductCard } from "@/components/customer/ProductCard";
 
 export default async function MenuPage({
@@ -2079,14 +2312,22 @@ export default async function MenuPage({
   const categories = await getCategories(supabase);
   const activeCat = cat ?? null;
   const products = await getVisibleProductsByCategory(supabase, activeCat);
-  const thumbs = await getThumbnailMap(supabase, products.map((p) => p.id));
+  const thumbs = await getThumbnailMap(
+    supabase,
+    products.map((p) => p.id),
+  );
 
   return (
     <main className="mx-auto max-w-md p-4">
       <div className="mb-4 flex gap-2 overflow-x-auto">
         <Tab href="/menu" active={!activeCat} label="전체" />
         {categories.map((c) => (
-          <Tab key={c.id} href={`/menu?cat=${c.id}`} active={activeCat === c.id} label={c.name} />
+          <Tab
+            key={c.id}
+            href={`/menu?cat=${c.id}`}
+            active={activeCat === c.id}
+            label={c.name}
+          />
         ))}
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -2094,19 +2335,31 @@ export default async function MenuPage({
           <ProductCard key={p.id} product={p} thumbnail={thumbs[p.id]} />
         ))}
       </div>
-      {products.length === 0 && <p className="py-10 text-center text-gray-500">상품이 없습니다.</p>}
+      {products.length === 0 && (
+        <p className="py-10 text-center text-gray-500">상품이 없습니다.</p>
+      )}
     </main>
   );
 }
 
-function Tab({ href, active, label }: { href: string; active: boolean; label: string }) {
+function Tab({
+  href,
+  active,
+  label,
+}: {
+  href: string;
+  active: boolean;
+  label: string;
+}) {
   return (
     <Link
       href={href}
-      className={`whitespace-nowrap rounded-full border px-4 py-1 text-sm ${
+      className={`rounded-full border px-4 py-1 text-sm whitespace-nowrap ${
         active ? "bg-black text-white" : "bg-white"
       }`}
-    >{label}</Link>
+    >
+      {label}
+    </Link>
   );
 }
 ```
@@ -2125,6 +2378,7 @@ git commit -m "feat(customer): 메뉴 페이지(카테고리 탭+상품 그리�
 ### Task 22: 상품 상세 페이지
 
 **Files:**
+
 - Create: `app/(customer)/products/[id]/page.tsx`
 
 - [ ] **Step 1: 상세 페이지 구현**
@@ -2154,8 +2408,12 @@ export default async function ProductDetailPage({
       <ImageSlider images={product.images} />
       <div className="space-y-3 p-4">
         <h1 className="text-lg font-bold">{product.name}</h1>
-        <div className="text-xl font-extrabold">{product.price.toLocaleString()}원</div>
-        <p className="whitespace-pre-wrap text-gray-700">{product.description}</p>
+        <div className="text-xl font-extrabold">
+          {product.price.toLocaleString()}원
+        </div>
+        <p className="whitespace-pre-wrap text-gray-700">
+          {product.description}
+        </p>
         <div className="pt-4">
           <ContactButtons settings={settings} />
         </div>
@@ -2183,6 +2441,7 @@ git commit -m "feat(customer): 상품 상세 페이지"
 ### Task 23: 루트 레이아웃 메타데이터 & 모바일 뷰포트
 
 **Files:**
+
 - Modify: `app/layout.tsx`
 
 - [ ] **Step 1: 레이아웃 메타/뷰포트 설정**
@@ -2201,7 +2460,11 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="ko">
       <body>{children}</body>
@@ -2242,6 +2505,7 @@ git add -A && git commit -m "test: 전체 테스트/빌드 검증" || echo "변�
 ### Task 25: 배포 문서
 
 **Files:**
+
 - Create: `README.md`
 
 - [ ] **Step 1: README 작성**
@@ -2250,6 +2514,7 @@ git add -A && git commit -m "test: 전체 테스트/빌드 검증" || echo "변�
 # shopmall — 상품 카탈로그 웹
 
 ## 로컬 실행
+
 1. `npm install`
 2. `.env.local`에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정
 3. Supabase에 `supabase/migrations/*.sql` 적용 (`npx supabase db push` 또는 대시보드 SQL 에디터)
@@ -2257,10 +2522,12 @@ git add -A && git commit -m "test: 전체 테스트/빌드 검증" || echo "변�
 5. `npm run dev`
 
 ## 배포 (Vercel)
+
 - Vercel 프로젝트에 위 두 환경변수 등록 후 배포
 - 이미지 도메인: Supabase Storage 공개 URL 사용
 
 ## 구조
+
 - 고객: `/`, `/menu`, `/products/[id]`
 - 관리자: `/admin/login`, `/admin/settings`, `/admin/categories`, `/admin/products`
 ```
@@ -2277,6 +2544,7 @@ git commit -m "docs: README(로컬 실행/배포/관리자 계정 안내)"
 ## Self-Review (작성자 점검 결과)
 
 **Spec 커버리지**
+
 - 메인(랜딩)+메뉴 진입 버튼 → Task 20 ✅
 - 메뉴(카테고리 탭+그리드) → Task 21 ✅
 - 상품 상세(슬라이드/설명/가격/문의) → Task 22 ✅

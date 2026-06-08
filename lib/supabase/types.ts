@@ -5,8 +5,11 @@ export type SiteSettings = {
   logo_url: string | null;
   banner_url: string | null;
   kakao_channel_url: string | null;
+  kakao_label: string | null;
   phone: string | null;
+  phone_label: string | null;
   instagram: string | null;
+  instagram_label: string | null;
   updated_at: string;
 };
 

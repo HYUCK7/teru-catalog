@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { getSettings } from "@/lib/data/settings";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -35,13 +35,13 @@ export default async function HomePage() {
         href="/menu"
         className="mt-6 block rounded bg-black py-4 text-lg font-medium text-white"
       >
-        메뉴 보기
+        m e n u !
       </Link>
       <Link
         href="/admin/login"
-        className="mt-3 block rounded border border-gray-300 py-3 text-sm font-medium text-gray-700"
+         className="mt-3 block py-3 text-sm font-medium text-gray-700 opacity-30"
       >
-        관리자 로그인
+        L O G I N
       </Link>
     </main>
   );

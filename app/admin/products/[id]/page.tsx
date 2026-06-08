@@ -26,7 +26,9 @@ export default async function ProductEditPage({
     <div>
       <AdminNav />
       <div className="flex items-center justify-between p-4">
-        <h1 className="text-xl font-bold">{isNew ? "상품 추가" : "상품 수정"}</h1>
+        <h1 className="text-xl font-bold">
+          {isNew ? "상품 추가" : "상품 수정"}
+        </h1>
         {!isNew && product && (
           <form action={removeProduct.bind(null, product.id)}>
             <Button type="submit" variant="destructive" size="sm">

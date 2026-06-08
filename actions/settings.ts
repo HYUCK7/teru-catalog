@@ -18,8 +18,11 @@ export async function saveSettings(_prev: unknown, formData: FormData) {
     logo_url: emptyToNull(formData.get("logo_url")),
     banner_url: emptyToNull(formData.get("banner_url")),
     kakao_channel_url: emptyToNull(formData.get("kakao_channel_url")),
+    kakao_label: emptyToNull(formData.get("kakao_label")),
     phone: emptyToNull(formData.get("phone")),
+    phone_label: emptyToNull(formData.get("phone_label")),
     instagram: emptyToNull(formData.get("instagram")),
+    instagram_label: emptyToNull(formData.get("instagram_label")),
   });
 
   revalidatePath("/");

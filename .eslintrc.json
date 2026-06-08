@@ -1,3 +1,10 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript", "prettier"],
+  "ignorePatterns": [
+    "next-env.d.ts",
+    ".next/**",
+    "out/**",
+    "build/**",
+    "coverage/**"
+  ]
 }

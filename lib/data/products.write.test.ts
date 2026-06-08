@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createProduct } from "./products";
 
-function insertClient(returnRow: unknown, error: { message: string } | null = null) {
+function insertClient(
+  returnRow: unknown,
+  error: { message: string } | null = null,
+) {
   const single = vi.fn(() => Promise.resolve({ data: returnRow, error }));
   const select = vi.fn(() => ({ single }));
   const insert = vi.fn(() => ({ select }));

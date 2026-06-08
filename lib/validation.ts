@@ -30,7 +30,9 @@ export function validateProductInput(input: {
   return Object.keys(errors).length ? fail(errors) : ok();
 }
 
-export function validateCategoryInput(input: { name: string }): ValidationResult {
+export function validateCategoryInput(input: {
+  name: string;
+}): ValidationResult {
   return input.name.trim()
     ? ok()
     : fail({ name: "카테고리 이름을 입력하세요." });

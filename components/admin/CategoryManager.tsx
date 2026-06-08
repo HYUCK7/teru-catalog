@@ -26,7 +26,10 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
       {message && <p className="text-sm text-red-600">{message}</p>}
       <ul className="space-y-2">
         {categories.map((category) => (
-          <li key={category.id} className="flex items-center gap-2 rounded border p-2">
+          <li
+            key={category.id}
+            className="flex items-center gap-2 rounded border p-2"
+          >
             <Input
               defaultValue={category.name}
               className="flex-1"

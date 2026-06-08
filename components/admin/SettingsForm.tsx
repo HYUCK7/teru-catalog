@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { SiteSettings } from "@/lib/supabase/types";
 import { saveSettings } from "@/actions/settings";
+import { DEFAULT_CONTACT_LABELS } from "@/components/customer/contact-labels";
 import { ImageUploader } from "./ImageUploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,11 +62,29 @@ export function SettingsForm({ initial }: { initial: SiteSettings }) {
         label="카톡 채널 링크"
         defaultValue={initial.kakao_channel_url ?? ""}
       />
+      <Field
+        name="kakao_label"
+        label="카톡 버튼 라벨"
+        defaultValue={initial.kakao_label ?? ""}
+        placeholder={DEFAULT_CONTACT_LABELS.kakao}
+      />
       <Field name="phone" label="전화번호" defaultValue={initial.phone ?? ""} />
+      <Field
+        name="phone_label"
+        label="전화 버튼 라벨"
+        defaultValue={initial.phone_label ?? ""}
+        placeholder={DEFAULT_CONTACT_LABELS.phone}
+      />
       <Field
         name="instagram"
         label="인스타 계정"
         defaultValue={initial.instagram ?? ""}
+      />
+      <Field
+        name="instagram_label"
+        label="인스타 버튼 라벨"
+        defaultValue={initial.instagram_label ?? ""}
+        placeholder={DEFAULT_CONTACT_LABELS.instagram}
       />
       {state?.ok && <p className="text-sm text-green-600">저장되었습니다.</p>}
       <Button type="submit" disabled={pending}>
@@ -79,17 +98,24 @@ function Field({
   name,
   label,
   defaultValue,
+  placeholder,
   error,
 }: {
   name: string;
   label: string;
   defaultValue: string;
+  placeholder?: string;
   error?: string;
 }) {
   return (
     <div>
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} defaultValue={defaultValue} />
+      <Input
+        id={name}
+        name={name}
+        defaultValue={defaultValue}
+        placeholder={placeholder}
+      />
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );

@@ -1,9 +1,10 @@
-import Link from "next/link";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { ProductSortList } from "@/components/admin/ProductSortList";
 import { Button } from "@/components/ui/button";
 import { getCategories } from "@/lib/data/categories";
 import { getAllProducts } from "@/lib/data/products";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,9 @@ export default async function AdminProductsPage() {
     getAllProducts(supabase),
     getCategories(supabase),
   ]);
-  const categoryName = (id: string | null) =>
-    categories.find((category) => category.id === id)?.name ?? "-";
+  const categoryNames = Object.fromEntries(
+    categories.map((category) => [category.id, category.name]),
+  );
 
   return (
     <div>
@@ -25,31 +27,7 @@ export default async function AdminProductsPage() {
           <Button>+ 상품 추가</Button>
         </Link>
       </div>
-      <ul className="divide-y">
-        {products.map((product) => (
-          <li key={product.id} className="flex items-center gap-3 p-4">
-            <span className="flex-1">{product.name}</span>
-            <span className="text-sm text-gray-500">
-              {categoryName(product.category_id)}
-            </span>
-            <span className="text-sm">{product.price.toLocaleString()}원</span>
-            <span
-              className={product.is_visible ? "text-green-600" : "text-gray-400"}
-            >
-              {product.is_visible ? "노출" : "숨김"}
-            </span>
-            <Link
-              href={`/admin/products/${product.id}`}
-              className="text-sm underline"
-            >
-              편집
-            </Link>
-          </li>
-        ))}
-        {products.length === 0 && (
-          <li className="p-4 text-gray-500">등록된 상품이 없습니다.</li>
-        )}
-      </ul>
+      <ProductSortList products={products} categoryNames={categoryNames} />
     </div>
   );
 }

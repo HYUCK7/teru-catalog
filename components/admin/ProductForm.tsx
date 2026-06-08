@@ -37,7 +37,7 @@ export function ProductForm({
               <button
                 type="button"
                 onClick={() => removeImage(image.id, product.id)}
-                className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1 text-xs text-white"
+                className="absolute -top-1 -right-1 rounded-full bg-red-600 px-1 text-xs text-white"
               >
                 x
               </button>

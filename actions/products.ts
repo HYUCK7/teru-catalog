@@ -8,6 +8,7 @@ import {
   deleteProduct,
   deleteProductImage,
   updateProduct,
+  updateProductSortOrders,
 } from "@/lib/data/products";
 import { createClient } from "@/lib/supabase/server";
 import { validateProductInput } from "@/lib/validation";
@@ -57,6 +58,20 @@ export async function saveProduct(
 export async function removeProduct(id: string) {
   const supabase = await createClient();
   await deleteProduct(supabase, id);
+  revalidatePath("/menu");
+  revalidatePath("/admin/products");
+  redirect("/admin/products");
+}
+
+export async function saveProductSortOrders(formData: FormData) {
+  const productIds = formData.getAll("product_id").map(String);
+  const updates = productIds.map((id, index) => ({
+    id,
+    sortOrder: index,
+  }));
+
+  const supabase = await createClient();
+  await updateProductSortOrders(supabase, updates);
   revalidatePath("/menu");
   revalidatePath("/admin/products");
   redirect("/admin/products");

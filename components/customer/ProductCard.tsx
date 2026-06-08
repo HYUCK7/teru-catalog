@@ -1,5 +1,7 @@
-import Link from "next/link";
+"use client";
+
 import type { Product } from "@/lib/supabase/types";
+import Link from "next/link";
 
 export function ProductCard({
   product,
@@ -21,7 +23,7 @@ export function ProductCard({
         )}
       </div>
       <div className="mt-1 text-sm">{product.name}</div>
-      <div className="font-bold">{product.price.toLocaleString()}원</div>
+      {/* <div className="font-bold">{product.price.toLocaleString()}원</div> */}
     </Link>
   );
 }

@@ -1,0 +1,14 @@
+# build output / generated
+.next/
+out/
+build/
+coverage/
+next-env.d.ts
+
+# deps
+node_modules/
+
+# lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
