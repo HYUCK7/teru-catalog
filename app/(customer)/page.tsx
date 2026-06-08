@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const supabase = await createClient();
   const settings = await getSettings(supabase);
-
+  console.log(settings.intro)
   return (
     <main className="mx-auto max-w-md p-4 text-center">
       {settings.logo_url ? (
@@ -30,10 +30,14 @@ export default async function HomePage() {
           className="my-4 w-full rounded object-cover"
         />
       )}
-      {settings.intro && <p className="my-4 text-gray-600">{settings.intro}</p>}
+      {settings.intro && (
+        <p className="my-4 whitespace-pre-wrap text-gray-600">
+          {settings.intro}
+        </p>
+      )}
       <Link
         href="/menu"
-        className="mt-6 block rounded bg-black py-4 text-lg font-medium text-white"
+        className="rounded-full mt-6 block rounded bg-black py-4 text-lg font-medium text-white"
       >
         m e n u !
       </Link>

@@ -7,6 +7,7 @@ import {
   createProduct,
   deleteProduct,
   deleteProductImage,
+  getNextProductImageSortOrder,
   updateProduct,
   updateProductSortOrders,
 } from "@/lib/data/products";
@@ -45,8 +46,17 @@ export async function saveProduct(
     .map((value) => value.trim())
     .filter(Boolean);
 
+  const firstNewImageSortOrder = await getNextProductImageSortOrder(
+    supabase,
+    id,
+  );
   for (let index = 0; index < newImages.length; index += 1) {
-    await addProductImage(supabase, id, newImages[index], index);
+    await addProductImage(
+      supabase,
+      id,
+      newImages[index],
+      firstNewImageSortOrder + index,
+    );
   }
 
   revalidatePath("/menu");

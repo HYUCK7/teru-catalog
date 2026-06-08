@@ -1,6 +1,6 @@
 import { BackButton } from "@/components/BackButton";
 import { ContactButtons } from "@/components/customer/ContactButtons";
-import { ImageSlider } from "@/components/customer/ImageSlider";
+import { ProductGallery } from "@/components/customer/ProductGallery";
 import { getProductWithImages } from "@/lib/data/products";
 import { getSettings } from "@/lib/data/settings";
 import { createClient } from "@/lib/supabase/server";
@@ -26,7 +26,7 @@ export default async function ProductDetailPage({
       <div className="p-4">
         <BackButton label="뒤로" />
       </div>
-      <ImageSlider images={product.images} />
+      <ProductGallery images={product.images} />
       <div className="space-y-3 p-4">
         <h1 className="text-lg font-bold">{product.name}</h1>
         <div className="text-xl font-extrabold">

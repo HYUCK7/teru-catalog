@@ -43,6 +43,22 @@ export async function updateCategory(
   if (error) throw new Error(error.message);
 }
 
+export async function updateCategorySortOrders(
+  supabase: SupabaseClient,
+  updates: { id: string; sortOrder: number }[],
+): Promise<void> {
+  await Promise.all(
+    updates.map(async ({ id, sortOrder }) => {
+      const { error } = await supabase
+        .from("categories")
+        .update({ sort_order: sortOrder })
+        .eq("id", id);
+
+      if (error) throw new Error(error.message);
+    }),
+  );
+}
+
 export async function deleteCategory(
   supabase: SupabaseClient,
   id: string,

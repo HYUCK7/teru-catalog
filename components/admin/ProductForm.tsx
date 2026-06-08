@@ -52,12 +52,12 @@ export function ProductForm({
               className="h-20 w-20 rounded object-cover ring-2 ring-green-500"
             />
           ))}
+          <ImageUploader
+            bucket="products"
+            pathPrefix={product?.id ?? "new"}
+            onUploaded={(url) => setNewUrls((prev) => [...prev, url])}
+          />
         </div>
-        <ImageUploader
-          bucket="products"
-          pathPrefix={product?.id ?? "new"}
-          onUploaded={(url) => setNewUrls((prev) => [...prev, url])}
-        />
         <input type="hidden" name="new_image_urls" value={newUrls.join(",")} />
       </div>
 

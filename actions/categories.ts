@@ -6,6 +6,7 @@ import {
   deleteCategory,
   getCategories,
   updateCategory,
+  updateCategorySortOrders,
 } from "@/lib/data/categories";
 import { createClient } from "@/lib/supabase/server";
 import { validateCategoryInput } from "@/lib/validation";
@@ -50,4 +51,17 @@ export async function removeCategory(id: string) {
   revalidatePath("/admin/categories");
   revalidatePath("/menu");
   return { ok: true, error: "" };
+}
+
+export async function saveCategorySortOrders(formData: FormData) {
+  const categoryIds = formData.getAll("category_id").map(String);
+  const updates = categoryIds.map((id, index) => ({
+    id,
+    sortOrder: index,
+  }));
+
+  const supabase = await createClient();
+  await updateCategorySortOrders(supabase, updates);
+  revalidatePath("/admin/categories");
+  revalidatePath("/menu");
 }

@@ -50,7 +50,8 @@ export async function getProductWithImages(
     .from("product_images")
     .select("*")
     .eq("product_id", id)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("image_url", { ascending: true });
 
   if (imageError) throw new Error(imageError.message);
 
@@ -150,6 +151,24 @@ export async function addProductImage(
   if (error) throw new Error(error.message);
 }
 
+export async function getNextProductImageSortOrder(
+  supabase: SupabaseClient,
+  productId: string,
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("product_images")
+    .select("sort_order")
+    .eq("product_id", productId)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+
+  if (error) throw new Error(error.message);
+
+  const lastSortOrder = (data?.[0] as { sort_order?: number } | undefined)
+    ?.sort_order;
+  return typeof lastSortOrder === "number" ? lastSortOrder + 1 : 0;
+}
+
 export async function deleteProductImage(
   supabase: SupabaseClient,
   imageId: string,
@@ -172,7 +191,8 @@ export async function getThumbnailMap(
     .from("product_images")
     .select("product_id,image_url,sort_order")
     .in("product_id", productIds)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("image_url", { ascending: true });
 
   if (error) throw new Error(error.message);
 
