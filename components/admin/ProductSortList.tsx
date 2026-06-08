@@ -33,7 +33,11 @@ export function ProductSortList({
 }) {
   const [items, setItems] = useState(products);
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 4,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -116,11 +120,11 @@ function SortableProductRow({
       <button
         type="button"
         aria-label={`${product.name} 순서 변경 핸들`}
-        className="cursor-grab rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 active:cursor-grabbing"
+        className="flex size-11 cursor-grab touch-none items-center justify-center rounded text-gray-400 select-none hover:bg-gray-100 hover:text-gray-600 active:cursor-grabbing"
         {...attributes}
         {...listeners}
       >
-        <GripVertical className="size-4" />
+        <GripVertical className="size-5" />
       </button>
       <span className="flex-1 text-sm">{product.name}</span>
       <span className="text-sm text-gray-500">
