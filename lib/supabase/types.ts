@@ -83,6 +83,7 @@ export type Order = {
   request_memo: string;
   selected_choices: SelectedChoice[];
   design_image_url: string;
+  total_amount: number;
   status: OrderStatus;
   created_at: string;
 };

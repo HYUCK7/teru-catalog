@@ -124,6 +124,9 @@ export async function submitOrder(
     }
   }
 
+  const totalAmount =
+    (product.price + sumChoicePrice(selectedChoices)) * quantity;
+
   await createOrder(supabase, {
     productId,
     productName: product.name,
@@ -136,10 +139,8 @@ export async function submitOrder(
     requestMemo,
     selectedChoices,
     designImageUrl,
+    totalAmount,
   });
-
-  const totalAmount =
-    (product.price + sumChoicePrice(selectedChoices)) * quantity;
   const cookieStore = await cookies();
   cookieStore.set("order_amount", String(totalAmount), {
     httpOnly: true,

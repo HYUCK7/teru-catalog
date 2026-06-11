@@ -13,6 +13,7 @@ export type OrderWriteInput = {
   requestMemo: string;
   selectedChoices: SelectedChoice[];
   designImageUrl: string;
+  totalAmount: number;
 };
 
 export async function createOrder(
@@ -31,6 +32,7 @@ export async function createOrder(
     request_memo: input.requestMemo,
     selected_choices: input.selectedChoices,
     design_image_url: input.designImageUrl,
+    total_amount: input.totalAmount,
   });
 
   if (error) throw new Error(error.message);

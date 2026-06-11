@@ -27,6 +27,7 @@ const input = {
   requestMemo: "초 5개",
   selectedChoices: [{ label: "딸기", price: 3000, kind: "flavor" as const }],
   designImageUrl: "https://example.com/design.jpg",
+  totalAmount: 56000,
 };
 
 describe("createOrder", () => {
@@ -45,6 +46,7 @@ describe("createOrder", () => {
       request_memo: "초 5개",
       selected_choices: [{ label: "딸기", price: 3000, kind: "flavor" }],
       design_image_url: "https://example.com/design.jpg",
+      total_amount: 56000,
     });
   });
 

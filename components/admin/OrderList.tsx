@@ -125,6 +125,11 @@ function OrderItem({ order }: { order: Order }) {
               )}
             </div>
           )}
+          {order.total_amount > 0 && (
+            <p className="font-medium">
+              총 금액: {order.total_amount.toLocaleString()}원
+            </p>
+          )}
           {order.lettering && <p>레터링: {order.lettering}</p>}
           {order.request_memo && <p>요청: {order.request_memo}</p>}
           <p className="text-gray-400">
