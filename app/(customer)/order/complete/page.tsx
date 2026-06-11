@@ -1,21 +1,18 @@
 import { DEFAULT_CONTACT_LABELS } from "@/components/customer/contact-labels";
 import { getSettings } from "@/lib/data/settings";
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrderCompletePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ amount?: string }>;
-}) {
+export default async function OrderCompletePage() {
   const supabase = await createClient();
-  const [settings, params] = await Promise.all([
+  const [settings, cookieStore] = await Promise.all([
     getSettings(supabase),
-    searchParams,
+    cookies(),
   ]);
-  const amount = Number(params.amount ?? 0);
+  const amount = Number(cookieStore.get("order_amount")?.value ?? 0);
   const hasAmount = Number.isFinite(amount) && amount > 0;
 
   return (

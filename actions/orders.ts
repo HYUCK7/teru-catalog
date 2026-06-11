@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isDateClosed, isTimeBlocked } from "@/lib/availability";
 import { sumChoicePrice, validateChoiceSelection } from "@/lib/customization";
@@ -139,8 +140,15 @@ export async function submitOrder(
 
   const totalAmount =
     (product.price + sumChoicePrice(selectedChoices)) * quantity;
+  const cookieStore = await cookies();
+  cookieStore.set("order_amount", String(totalAmount), {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/order/complete",
+    maxAge: 60,
+  });
   revalidatePath("/admin/orders");
-  redirect(`/order/complete?amount=${totalAmount}`);
+  redirect("/order/complete");
 }
 
 export async function updateOrderStatus(id: string, status: string) {
