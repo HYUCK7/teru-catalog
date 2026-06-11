@@ -119,7 +119,7 @@ function ChoiceEditForm({
           className="w-24"
         />
         <Button type="submit" variant="outline" size="sm" disabled={isPending}>
-          저장
+          수정
         </Button>
         <Button
           type="button"
