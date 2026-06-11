@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 주문서에서 손님이 카테고리별 맛/옵션을 고르고(상품별 none/multi/single 방식), 일부 항목은 추가 금액이 붙으며, 선택 내역이 주문에 스냅샷으로 저장된다.
+**Goal:** 주문서에서 손님이 카테고리별 맛(flavor)·옵션(option)을 각각 다중선택할 수 있고(상품마다 독립 토글, 동시 사용 가능), 일부 항목은 추가 금액이 붙으며, 선택 내역이 주문에 스냅샷으로 저장된다.
 
-**Architecture:** `category_choices`(카테고리별 항목) 테이블 + `products.custom_type` + `orders.selected_choices(jsonb)`. 순수 로직은 `lib/customization.ts`, 데이터는 `lib/data/category-choices.ts`, 서버 동작은 `actions/*`, UI는 관리자(`CategoryChoiceManager`, `ProductForm`)와 손님(`ProductCustomizer`)으로 분리. 가격 변조 방지를 위해 서버에서 정식 항목 대조 후 스냅샷 재구성.
+**Architecture:** `category_choices`(카테고리별 항목, `kind`=flavor|option) 테이블 + `products.flavor_enabled`/`products.option_enabled` + `orders.selected_choices(jsonb)`. 순수 로직은 `lib/customization.ts`, 데이터는 `lib/data/category-choices.ts`, 서버 동작은 `actions/*`, UI는 관리자(`CategoryChoiceManager`, `ProductForm`)와 손님(`ProductCustomizer`)으로 분리. 가격 변조 방지를 위해 서버에서 종류별 정식 항목 대조 후 스냅샷 재구성.
 
 **Tech Stack:** Next.js 15 App Router(server actions), React 19, TypeScript, Supabase(@supabase/ssr, RLS), Tailwind v4, vitest.
 
@@ -20,12 +20,13 @@
 - [ ] **Step 1: 마이그레이션 SQL 작성**
 
 ```sql
--- 상품 커스텀 주문: 카테고리별 맛/옵션 항목 + 상품 커스텀 방식 + 주문 선택 스냅샷
+-- 상품 커스텀 주문: 카테고리별 맛/옵션 항목 + 상품 노출 토글 + 주문 선택 스냅샷
 
 -- 카테고리별 맛/옵션 항목
 create table category_choices (
   id uuid primary key default gen_random_uuid(),
   category_id uuid not null references categories(id) on delete cascade,
+  kind text not null check (kind in ('flavor', 'option')),
   label text not null,
   price int not null default 0,
   sort_order int not null default 0,
@@ -34,9 +35,11 @@ create table category_choices (
 
 create index on category_choices (category_id);
 
--- 상품 커스텀 방식: 'none' | 'multi' | 'single'
+-- 상품: 맛/옵션 노출 토글 (둘 다 false = 단일 품목)
 alter table products
-  add column if not exists custom_type text not null default 'none';
+  add column if not exists flavor_enabled boolean not null default false;
+alter table products
+  add column if not exists option_enabled boolean not null default false;
 
 -- 주문에 선택 항목 스냅샷 저장
 alter table orders
@@ -59,7 +62,7 @@ create policy "admin write category_choices" on category_choices
 
 ```bash
 git add supabase/migrations/0007_customization.sql
-git commit -m "feat: add customization migration (category_choices, custom_type, selected_choices)"
+git commit -m "feat: add customization migration (category_choices, product toggles, selected_choices)"
 ```
 
 ---
@@ -69,13 +72,33 @@ git commit -m "feat: add customization migration (category_choices, custom_type,
 **Files:**
 - Modify: `lib/supabase/types.ts`
 
-- [ ] **Step 1: `Product`에 `custom_type`, `Order`에 `selected_choices`, 새 타입 추가**
+- [ ] **Step 1: `Product`/`Order` 필드 + 새 타입 추가**
+
+파일에 새 타입 추가:
+
+```typescript
+export type ChoiceKind = "flavor" | "option";
+
+export type CategoryChoice = {
+  id: string;
+  category_id: string;
+  kind: ChoiceKind;
+  label: string;
+  price: number;
+  sort_order: number;
+  created_at: string;
+};
+
+export type SelectedChoice = {
+  label: string;
+  price: number;
+  kind: ChoiceKind;
+};
+```
 
 `Product` 타입에 필드 추가:
 
 ```typescript
-export type CustomType = "none" | "multi" | "single";
-
 export type Product = {
   id: string;
   category_id: string | null;
@@ -84,7 +107,8 @@ export type Product = {
   description: string;
   is_visible: boolean;
   sort_order: number;
-  custom_type: CustomType;
+  flavor_enabled: boolean;
+  option_enabled: boolean;
   created_at: string;
 };
 ```
@@ -95,28 +119,10 @@ export type Product = {
   selected_choices: SelectedChoice[];
 ```
 
-파일에 새 타입 추가:
-
-```typescript
-export type CategoryChoice = {
-  id: string;
-  category_id: string;
-  label: string;
-  price: number;
-  sort_order: number;
-  created_at: string;
-};
-
-export type SelectedChoice = {
-  label: string;
-  price: number;
-};
-```
-
 - [ ] **Step 2: 타입체크**
 
 Run: `npx tsc --noEmit`
-Expected: 기존 코드에서 `custom_type`/`selected_choices` 누락으로 에러가 날 수 있음 — 이후 Task에서 채워짐. 새 타입 자체에 문법 오류만 없으면 통과로 간주(에러가 신규 필드 관련인지만 확인).
+Expected: 기존 코드에서 신규 필드 누락 에러가 날 수 있음 — 이후 Task에서 채워짐. 새 타입 자체에 문법 오류만 없으면 진행.
 
 - [ ] **Step 3: Commit**
 
@@ -139,75 +145,68 @@ git commit -m "feat: add customization types"
 import { describe, expect, it } from "vitest";
 import type { CategoryChoice } from "@/lib/supabase/types";
 import {
-  isCustomType,
+  isChoiceKind,
   sumChoicePrice,
-  validateSelectedChoices,
+  validateChoiceSelection,
 } from "./customization";
 
-const choices: CategoryChoice[] = [
-  { id: "a", category_id: "c", label: "딸기", price: 3000, sort_order: 0, created_at: "" },
-  { id: "b", category_id: "c", label: "블루베리", price: 0, sort_order: 1, created_at: "" },
-  { id: "d", category_id: "c", label: "초코", price: 2000, sort_order: 2, created_at: "" },
+const flavors: CategoryChoice[] = [
+  { id: "a", category_id: "c", kind: "flavor", label: "딸기", price: 3000, sort_order: 0, created_at: "" },
+  { id: "b", category_id: "c", kind: "flavor", label: "블루베리", price: 0, sort_order: 1, created_at: "" },
 ];
 
-describe("isCustomType", () => {
+describe("isChoiceKind", () => {
   it("유효한 값만 true", () => {
-    expect(isCustomType("none")).toBe(true);
-    expect(isCustomType("multi")).toBe(true);
-    expect(isCustomType("single")).toBe(true);
-    expect(isCustomType("xxx")).toBe(false);
-    expect(isCustomType("")).toBe(false);
+    expect(isChoiceKind("flavor")).toBe(true);
+    expect(isChoiceKind("option")).toBe(true);
+    expect(isChoiceKind("xxx")).toBe(false);
+    expect(isChoiceKind("")).toBe(false);
   });
 });
 
-describe("validateSelectedChoices", () => {
-  it("none 이면 선택이 있어도 빈 스냅샷", () => {
-    const r = validateSelectedChoices("none", ["딸기"], choices);
+describe("validateChoiceSelection", () => {
+  it("선택 없음은 허용(필수 아님)", () => {
+    const r = validateChoiceSelection([], flavors);
     expect(r.ok).toBe(true);
-    expect(r.snapshot).toEqual([]);
+    if (r.ok) expect(r.snapshot).toEqual([]);
   });
 
-  it("선택 없음은 허용(선택은 필수 아님)", () => {
-    const r = validateSelectedChoices("multi", [], choices);
+  it("여러 개 선택 가능, 서버 데이터로 스냅샷 재구성(kind 포함)", () => {
+    const r = validateChoiceSelection(["딸기", "블루베리"], flavors);
     expect(r.ok).toBe(true);
-    expect(r.snapshot).toEqual([]);
-  });
-
-  it("multi 는 여러 개 선택 가능, 서버 데이터로 스냅샷 재구성", () => {
-    const r = validateSelectedChoices("multi", ["딸기", "블루베리"], choices);
-    expect(r.ok).toBe(true);
-    expect(r.snapshot).toEqual([
-      { label: "딸기", price: 3000 },
-      { label: "블루베리", price: 0 },
-    ]);
-  });
-
-  it("single 은 최대 1개", () => {
-    const r = validateSelectedChoices("single", ["딸기", "초코"], choices);
-    expect(r.ok).toBe(false);
-  });
-
-  it("single 1개는 허용", () => {
-    const r = validateSelectedChoices("single", ["초코"], choices);
-    expect(r.ok).toBe(true);
-    expect(r.snapshot).toEqual([{ label: "초코", price: 2000 }]);
+    if (r.ok)
+      expect(r.snapshot).toEqual([
+        { label: "딸기", price: 3000, kind: "flavor" },
+        { label: "블루베리", price: 0, kind: "flavor" },
+      ]);
   });
 
   it("정식 항목에 없는 라벨은 에러", () => {
-    const r = validateSelectedChoices("multi", ["없는맛"], choices);
+    const r = validateChoiceSelection(["없는맛"], flavors);
     expect(r.ok).toBe(false);
   });
 
   it("중복 라벨은 한 번만", () => {
-    const r = validateSelectedChoices("multi", ["딸기", "딸기"], choices);
+    const r = validateChoiceSelection(["딸기", "딸기"], flavors);
     expect(r.ok).toBe(true);
-    expect(r.snapshot).toEqual([{ label: "딸기", price: 3000 }]);
+    if (r.ok) expect(r.snapshot).toEqual([{ label: "딸기", price: 3000, kind: "flavor" }]);
+  });
+
+  it("빈/공백 라벨은 무시", () => {
+    const r = validateChoiceSelection(["", "  ", "딸기"], flavors);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.snapshot).toEqual([{ label: "딸기", price: 3000, kind: "flavor" }]);
   });
 });
 
 describe("sumChoicePrice", () => {
   it("스냅샷 가격 합계", () => {
-    expect(sumChoicePrice([{ label: "딸기", price: 3000 }, { label: "초코", price: 2000 }])).toBe(5000);
+    expect(
+      sumChoicePrice([
+        { label: "딸기", price: 3000, kind: "flavor" },
+        { label: "2호", price: 5000, kind: "option" },
+      ]),
+    ).toBe(8000);
     expect(sumChoicePrice([])).toBe(0);
   });
 });
@@ -221,38 +220,34 @@ Expected: FAIL — `lib/customization.ts` 없음.
 - [ ] **Step 3: 최소 구현**
 
 ```typescript
-import type { CategoryChoice, CustomType, SelectedChoice } from "@/lib/supabase/types";
+import type { CategoryChoice, ChoiceKind, SelectedChoice } from "@/lib/supabase/types";
 
-const CUSTOM_TYPES: CustomType[] = ["none", "multi", "single"];
+export const CHOICE_KINDS: ChoiceKind[] = ["flavor", "option"];
 
-export function isCustomType(value: string): value is CustomType {
-  return (CUSTOM_TYPES as string[]).includes(value);
+export function isChoiceKind(value: string): value is ChoiceKind {
+  return (CHOICE_KINDS as string[]).includes(value);
 }
 
-type Validation = { ok: true; snapshot: SelectedChoice[] } | { ok: false; error: string };
+type Validation =
+  | { ok: true; snapshot: SelectedChoice[] }
+  | { ok: false; error: string };
 
-export function validateSelectedChoices(
-  customType: CustomType,
+// 한 종류(맛 또는 옵션)의 다중선택을 검증하고 스냅샷 생성
+export function validateChoiceSelection(
   selectedLabels: string[],
-  choices: CategoryChoice[],
+  available: CategoryChoice[],
 ): Validation {
-  if (customType === "none") return { ok: true, snapshot: [] };
+  const unique = [
+    ...new Set(selectedLabels.map((label) => label.trim()).filter(Boolean)),
+  ];
+  const byLabel = new Map(available.map((choice) => [choice.label, choice]));
 
-  // 중복 제거(입력 순서 유지)
-  const unique = [...new Set(selectedLabels.map((l) => l.trim()).filter(Boolean))];
-
-  if (customType === "single" && unique.length > 1) {
-    return { ok: false, error: "옵션은 하나만 선택할 수 있어요." };
-  }
-
-  const byLabel = new Map(choices.map((c) => [c.label, c]));
   const snapshot: SelectedChoice[] = [];
   for (const label of unique) {
     const choice = byLabel.get(label);
     if (!choice) return { ok: false, error: "선택할 수 없는 항목이 있어요." };
-    snapshot.push({ label: choice.label, price: choice.price });
+    snapshot.push({ label: choice.label, price: choice.price, kind: choice.kind });
   }
-
   return { ok: true, snapshot };
 }
 
@@ -264,7 +259,7 @@ export function sumChoicePrice(snapshot: SelectedChoice[]): number {
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `npx vitest run lib/customization.test.ts`
-Expected: PASS (9 tests)
+Expected: PASS (8 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -280,8 +275,17 @@ git commit -m "feat: add customization pure logic (validate/snapshot/sum)"
 **Files:**
 - Create: `lib/data/category-choices.ts`
 - Test: `lib/data/category-choices.test.ts`
+- Modify (필요 시): `test/mock-supabase.ts` (`.in` 추가)
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [ ] **Step 1: mock 에 `.in` 추가** (`getChoicesForCategories` 가 `.in()` 사용)
+
+`test/mock-supabase.ts` 의 `makeQuery` 안, `query.order = ...` 다음 줄에 추가:
+
+```typescript
+  query.in = vi.fn(chain);
+```
+
+- [ ] **Step 2: 실패하는 테스트 작성**
 
 ```typescript
 import { describe, expect, it, vi } from "vitest";
@@ -299,7 +303,7 @@ describe("getChoicesByCategory", () => {
     const client = makeClient({
       category_choices: {
         data: [
-          { id: "1", category_id: "c", label: "딸기", price: 3000, sort_order: 0, created_at: "" },
+          { id: "1", category_id: "c", kind: "flavor", label: "딸기", price: 3000, sort_order: 0, created_at: "" },
         ],
         error: null,
       },
@@ -329,9 +333,9 @@ describe("getChoicesForCategories", () => {
     const client = makeClient({
       category_choices: {
         data: [
-          { id: "1", category_id: "c1", label: "딸기", price: 0, sort_order: 0, created_at: "" },
-          { id: "2", category_id: "c1", label: "초코", price: 0, sort_order: 1, created_at: "" },
-          { id: "3", category_id: "c2", label: "2호", price: 5000, sort_order: 0, created_at: "" },
+          { id: "1", category_id: "c1", kind: "flavor", label: "딸기", price: 0, sort_order: 0, created_at: "" },
+          { id: "2", category_id: "c1", kind: "option", label: "2호", price: 5000, sort_order: 0, created_at: "" },
+          { id: "3", category_id: "c2", kind: "flavor", label: "바닐라", price: 0, sort_order: 0, created_at: "" },
         ],
         error: null,
       },
@@ -346,9 +350,16 @@ describe("addCategoryChoice", () => {
   it("insert 한다", async () => {
     const insert = vi.fn(() => Promise.resolve({ error: null }));
     const client = { from: vi.fn(() => ({ insert })) };
-    await addCategoryChoice(client as never, { categoryId: "c", label: "딸기", price: 3000, sortOrder: 0 });
+    await addCategoryChoice(client as never, {
+      categoryId: "c",
+      kind: "flavor",
+      label: "딸기",
+      price: 3000,
+      sortOrder: 0,
+    });
     expect(insert).toHaveBeenCalledWith({
       category_id: "c",
+      kind: "flavor",
       label: "딸기",
       price: 3000,
       sort_order: 0,
@@ -378,19 +389,20 @@ describe("removeCategoryChoice", () => {
 });
 ```
 
-- [ ] **Step 2: 테스트 실패 확인**
+- [ ] **Step 3: 테스트 실패 확인**
 
 Run: `npx vitest run lib/data/category-choices.test.ts`
 Expected: FAIL — 파일 없음.
 
-- [ ] **Step 3: 최소 구현**
+- [ ] **Step 4: 최소 구현**
 
 ```typescript
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CategoryChoice } from "@/lib/supabase/types";
+import type { CategoryChoice, ChoiceKind } from "@/lib/supabase/types";
 
 export type CategoryChoiceWriteInput = {
   categoryId: string;
+  kind: ChoiceKind;
   label: string;
   price: number;
   sortOrder: number;
@@ -437,6 +449,7 @@ export async function addCategoryChoice(
 ): Promise<void> {
   const { error } = await supabase.from("category_choices").insert({
     category_id: input.categoryId,
+    kind: input.kind,
     label: input.label,
     price: input.price,
     sort_order: input.sortOrder,
@@ -470,28 +483,22 @@ export async function removeCategoryChoice(
 export async function getNextChoiceSortOrder(
   supabase: SupabaseClient,
   categoryId: string,
+  kind: ChoiceKind,
 ): Promise<number> {
   const rows = await getChoicesByCategory(supabase, categoryId);
-  return rows.length ? Math.max(...rows.map((r) => r.sort_order)) + 1 : 0;
+  const sameKind = rows.filter((row) => row.kind === kind);
+  return sameKind.length
+    ? Math.max(...sameKind.map((row) => row.sort_order)) + 1
+    : 0;
 }
 ```
 
-> 참고: `makeQuery` mock 의 `select`/`eq`/`order`는 모두 같은 query 객체를 반환하고 `.then` 으로 resolve 되므로 `.in()` 도 동작하도록 mock 에 의존하지 않는다 — 위 `getChoicesForCategories` 테스트는 `makeClient` 가 `.in` 미지원이면 실패한다. **Step 3 직후 mock 확장이 필요하면 Step 3b 수행.**
-
-- [ ] **Step 3b: (필요 시) mock 에 `.in` 추가**
-
-`test/mock-supabase.ts` 의 `makeQuery` 에 한 줄 추가(이미 `eq`/`order` 와 동일 패턴):
-
-```typescript
-  query.in = vi.fn(chain);
-```
-
-- [ ] **Step 4: 테스트 통과 확인**
+- [ ] **Step 5: 테스트 통과 확인**
 
 Run: `npx vitest run lib/data/category-choices.test.ts`
 Expected: PASS (7 tests)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add lib/data/category-choices.ts lib/data/category-choices.test.ts test/mock-supabase.ts
@@ -511,6 +518,7 @@ git commit -m "feat: add category-choices data layer"
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isChoiceKind } from "@/lib/customization";
 import {
   addCategoryChoice,
   getNextChoiceSortOrder,
@@ -530,17 +538,19 @@ function parsePrice(value: FormDataEntryValue | null): number | null {
 
 export async function addChoiceAction(
   categoryId: string,
+  kind: string,
   _prev: unknown,
   formData: FormData,
 ): Promise<Result> {
+  if (!isChoiceKind(kind)) return { ok: false, error: "잘못된 종류입니다." };
   const label = String(formData.get("label") ?? "").trim();
   const price = parsePrice(formData.get("price"));
   if (!label) return { ok: false, error: "항목 이름을 입력하세요." };
   if (price === null) return { ok: false, error: "가격은 0 이상의 정수여야 합니다." };
 
   const supabase = await createClient();
-  const sortOrder = await getNextChoiceSortOrder(supabase, categoryId);
-  await addCategoryChoice(supabase, { categoryId, label, price, sortOrder });
+  const sortOrder = await getNextChoiceSortOrder(supabase, categoryId, kind);
+  await addCategoryChoice(supabase, { categoryId, kind, label, price, sortOrder });
   revalidatePath("/admin/categories");
   return { ok: true };
 }
@@ -589,20 +599,17 @@ git commit -m "feat: add category-choices server actions"
 - Modify: `components/admin/CategoryManager.tsx` (각 행에 항목 관리 삽입)
 - Modify: `app/admin/categories/page.tsx` (항목 데이터 로드 + 전달)
 
-- [ ] **Step 1: `CategoryChoiceManager` 작성**
+- [ ] **Step 1: `CategoryChoiceManager` 작성** (맛/옵션 두 그룹)
 
 ```tsx
 "use client";
 
-import { useActionState, useState } from "react";
-import {
-  addChoiceAction,
-  removeChoiceAction,
-  updateChoiceAction,
-} from "@/actions/category-choices";
+import { useState } from "react";
+import { removeChoiceAction, updateChoiceAction } from "@/actions/category-choices";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { CategoryChoice } from "@/lib/supabase/types";
+import type { CategoryChoice, ChoiceKind } from "@/lib/supabase/types";
+import { ChoiceAddForm } from "./ChoiceAddForm";
 
 export function CategoryChoiceManager({
   categoryId,
@@ -611,12 +618,9 @@ export function CategoryChoiceManager({
   categoryId: string;
   choices: CategoryChoice[];
 }) {
-  const action = addChoiceAction.bind(null, categoryId);
-  const [state, formAction, pending] = useActionState(action, null);
   const [items, setItems] = useState(choices);
   const [message, setMessage] = useState("");
 
-  // 추가 성공 시 서버 revalidate 로 새로고침되지만, 즉시 반영 위해 낙관적 처리는 생략(단순화).
   async function handleUpdate(choice: CategoryChoice, label: string, price: number) {
     setMessage("");
     if (label === choice.label && price === choice.price) return;
@@ -639,20 +643,52 @@ export function CategoryChoiceManager({
   }
 
   return (
-    <div className="mt-2 space-y-2 rounded bg-gray-50 p-2">
-      <p className="text-xs font-medium text-gray-500">맛/옵션 항목</p>
+    <div className="mt-2 space-y-3 rounded bg-gray-50 p-2">
+      <ChoiceGroup
+        title="맛 항목"
+        kind="flavor"
+        categoryId={categoryId}
+        items={items.filter((i) => i.kind === "flavor")}
+        onUpdate={handleUpdate}
+        onRemove={handleRemove}
+      />
+      <ChoiceGroup
+        title="옵션 항목"
+        kind="option"
+        categoryId={categoryId}
+        items={items.filter((i) => i.kind === "option")}
+        onUpdate={handleUpdate}
+        onRemove={handleRemove}
+      />
+      {message && <p className="text-xs text-red-600">{message}</p>}
+    </div>
+  );
+}
+
+function ChoiceGroup({
+  title,
+  kind,
+  categoryId,
+  items,
+  onUpdate,
+  onRemove,
+}: {
+  title: string;
+  kind: ChoiceKind;
+  categoryId: string;
+  items: CategoryChoice[];
+  onUpdate: (choice: CategoryChoice, label: string, price: number) => Promise<void>;
+  onRemove: (id: string) => Promise<void>;
+}) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-gray-500">{title}</p>
       <ul className="space-y-1">
         {items.map((choice) => (
-          <ChoiceRow key={choice.id} choice={choice} onUpdate={handleUpdate} onRemove={handleRemove} />
+          <ChoiceRow key={choice.id} choice={choice} onUpdate={onUpdate} onRemove={onRemove} />
         ))}
       </ul>
-      <form action={formAction} className="flex gap-1">
-        <Input name="label" placeholder="항목 이름" className="flex-1" />
-        <Input name="price" type="number" min={0} step={1} defaultValue={0} className="w-24" placeholder="추가금" />
-        <Button type="submit" size="sm" disabled={pending}>추가</Button>
-      </form>
-      {state?.error && <p className="text-xs text-red-600">{state.error}</p>}
-      {message && <p className="text-xs text-red-600">{message}</p>}
+      <ChoiceAddForm categoryId={categoryId} kind={kind} />
     </div>
   );
 }
@@ -694,18 +730,60 @@ function ChoiceRow({
 }
 ```
 
-- [ ] **Step 2: `CategoryManager` 에 항목 관리 삽입**
+- [ ] **Step 2: `ChoiceAddForm` 작성** (kind 바인딩된 추가 폼 — `useActionState` 분리)
 
-`CategoryManager` props 에 `choicesByCategory` 추가하고 `SortableCategoryRow` 에 전달:
+`components/admin/ChoiceAddForm.tsx`:
 
-`components/admin/CategoryManager.tsx` 상단 import 추가:
+```tsx
+"use client";
+
+import { useActionState } from "react";
+import { addChoiceAction } from "@/actions/category-choices";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { ChoiceKind } from "@/lib/supabase/types";
+
+export function ChoiceAddForm({
+  categoryId,
+  kind,
+}: {
+  categoryId: string;
+  kind: ChoiceKind;
+}) {
+  const action = addChoiceAction.bind(null, categoryId, kind);
+  const [state, formAction, pending] = useActionState(action, null);
+
+  return (
+    <form action={formAction} className="flex gap-1">
+      <Input name="label" placeholder="항목 이름" className="flex-1" />
+      <Input
+        name="price"
+        type="number"
+        min={0}
+        step={1}
+        defaultValue={0}
+        className="w-24"
+        placeholder="추가금"
+      />
+      <Button type="submit" size="sm" disabled={pending}>
+        추가
+      </Button>
+      {state?.error && <p className="text-xs text-red-600">{state.error}</p>}
+    </form>
+  );
+}
+```
+
+> 추가 성공 시 `revalidatePath("/admin/categories")` 로 서버에서 목록이 갱신된다. 즉시 반영을 위한 낙관적 업데이트는 단순화를 위해 생략(페이지가 force-dynamic).
+
+- [ ] **Step 3: `CategoryManager` 에 항목 관리 삽입**
+
+`components/admin/CategoryManager.tsx` 의 import — 기존 `import type { Category } ...` 줄을 교체:
 
 ```typescript
 import { CategoryChoiceManager } from "@/components/admin/CategoryChoiceManager";
 import type { Category, CategoryChoice } from "@/lib/supabase/types";
 ```
-
-(기존 `import type { Category } ...` 줄을 위 줄로 교체)
 
 `CategoryManager` 시그니처 변경:
 
@@ -731,7 +809,7 @@ export function CategoryManager({
                 />
 ```
 
-`SortableCategoryRow` 시그니처 + 렌더 수정 — `choices` prop 받고, 행 하단에 매니저 추가:
+`SortableCategoryRow` 시그니처 + 렌더 수정 — `choices` prop 받고, `<li>` 를 상단 행 + 항목 매니저로 재구성:
 
 ```tsx
 function SortableCategoryRow({
@@ -745,11 +823,16 @@ function SortableCategoryRow({
   onRename: (category: Category, name: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
 }) {
-```
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: category.id });
 
-`<li>` 내부를 두 영역으로 감싼다. 기존 `<li>` 의 자식(핸들/이름/삭제 버튼)을 `<div className="flex items-center gap-2">` 로 묶고, 그 아래 `<CategoryChoiceManager categoryId={category.id} choices={choices} />` 를 추가. `<li>` 의 className 은 `flex items-center` 대신 `block` 계열로 변경:
-
-```tsx
+  return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
@@ -777,9 +860,11 @@ function SortableCategoryRow({
       </div>
       <CategoryChoiceManager categoryId={category.id} choices={choices} />
     </li>
+  );
+}
 ```
 
-- [ ] **Step 3: 카테고리 페이지에서 항목 로드 + 전달**
+- [ ] **Step 4: 카테고리 페이지에서 항목 로드 + 전달**
 
 `app/admin/categories/page.tsx` 전체 교체:
 
@@ -810,75 +895,71 @@ export default async function CategoriesPage() {
 }
 ```
 
-- [ ] **Step 4: 타입체크 + 빌드**
+- [ ] **Step 5: 타입체크 + 빌드**
 
-Run: `npx tsc --noEmit`
+Run: `npx tsc --noEmit && npm run build`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add components/admin/CategoryChoiceManager.tsx components/admin/CategoryManager.tsx app/admin/categories/page.tsx
-git commit -m "feat: manage category choices in admin"
+git add components/admin/CategoryChoiceManager.tsx components/admin/ChoiceAddForm.tsx components/admin/CategoryManager.tsx app/admin/categories/page.tsx
+git commit -m "feat: manage category flavor/option choices in admin"
 ```
 
 ---
 
-### Task 7: 상품 데이터 + 액션에 `custom_type` 반영
+### Task 7: 상품 데이터 + 액션에 토글 반영
 
 **Files:**
 - Modify: `lib/data/products.ts` (`ProductWriteInput`, create/update)
-- Modify: `actions/products.ts` (폼에서 custom_type 읽기)
+- Modify: `actions/products.ts` (폼에서 토글 읽기)
 
 - [ ] **Step 1: `ProductWriteInput` + create/update 수정**
 
 `lib/data/products.ts` — `ProductWriteInput` 에 필드 추가:
 
 ```typescript
-import type {
-  CustomType,
-  Product,
-  ProductImage,
-  ProductWithImages,
-} from "@/lib/supabase/types";
-
 export type ProductWriteInput = {
   name: string;
   price: number;
   categoryId: string;
   description: string;
   isVisible: boolean;
-  customType: CustomType;
+  flavorEnabled: boolean;
+  optionEnabled: boolean;
 };
 ```
 
-`createProduct` 의 `.insert({...})` 에 추가: `custom_type: input.customType,`
-`updateProduct` 의 `.update({...})` 에 추가: `custom_type: input.customType,`
+`createProduct` 의 `.insert({...})` 와 `updateProduct` 의 `.update({...})` 양쪽에 추가:
 
-- [ ] **Step 2: `actions/products.ts` 에서 custom_type 파싱**
+```typescript
+      flavor_enabled: input.flavorEnabled,
+      option_enabled: input.optionEnabled,
+```
 
-`saveProduct` 안에서 폼 읽기 추가:
+- [ ] **Step 2: `actions/products.ts` 에서 토글 파싱**
+
+`saveProduct` 안 `isVisible` 다음에 추가:
 
 ```typescript
   const isVisible = formData.get("is_visible") === "on";
-  const customEnabled = formData.get("custom_enabled") === "on";
-  const customTypeRaw = String(formData.get("custom_type") ?? "multi");
-  const customType: CustomType = customEnabled && isCustomType(customTypeRaw)
-    ? (customTypeRaw as CustomType)
-    : "none";
+  const flavorEnabled = formData.get("flavor_enabled") === "on";
+  const optionEnabled = formData.get("option_enabled") === "on";
 ```
 
-`input` 객체에 `customType` 추가:
+`input` 객체에 추가:
 
 ```typescript
-  const input = { name, price, categoryId, description, isVisible, customType };
-```
-
-파일 상단 import 추가:
-
-```typescript
-import { isCustomType } from "@/lib/customization";
-import type { CustomType } from "@/lib/supabase/types";
+  const input = {
+    name,
+    price,
+    categoryId,
+    description,
+    isVisible,
+    flavorEnabled,
+    optionEnabled,
+  };
 ```
 
 - [ ] **Step 3: 타입체크**
@@ -890,7 +971,7 @@ Expected: PASS
 
 ```bash
 git add lib/data/products.ts actions/products.ts
-git commit -m "feat: persist product custom_type"
+git commit -m "feat: persist product flavor/option toggles"
 ```
 
 ---
@@ -900,56 +981,32 @@ git commit -m "feat: persist product custom_type"
 **Files:**
 - Modify: `components/admin/ProductForm.tsx`
 
-- [ ] **Step 1: `노출하기` 아래에 커스텀 섹션 추가**
+- [ ] **Step 1: `노출하기` 아래에 토글 두 개 추가**
 
-`노출하기` `<label>` 블록과 `<Button type="submit">` 사이에 삽입. 상태로 체크 여부 관리:
-
-상단 `useState` 는 이미 import 됨. 컴포넌트 본문 상단에 추가:
-
-```typescript
-  const [customEnabled, setCustomEnabled] = useState(
-    (product?.custom_type ?? "none") !== "none",
-  );
-```
-
-JSX 삽입:
+`노출하기` `<label>` 블록과 `<Button type="submit">` 사이에 삽입:
 
 ```tsx
       <div className="space-y-2 rounded border p-3">
-        <label className="flex items-center gap-2">
+        <p className="text-sm font-medium">커스텀 주문</p>
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            name="custom_enabled"
-            checked={customEnabled}
-            onChange={(e) => setCustomEnabled(e.target.checked)}
+            name="flavor_enabled"
+            defaultChecked={product?.flavor_enabled ?? false}
           />
-          커스텀 주문 받기
+          맛 선택 받기 (여러 개 선택 가능)
         </label>
-        {customEnabled && (
-          <div className="space-y-1 pl-6 text-sm">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="custom_type"
-                value="multi"
-                defaultChecked={(product?.custom_type ?? "multi") !== "single"}
-              />
-              맛 선택 · 여러 개 선택 가능
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="custom_type"
-                value="single"
-                defaultChecked={product?.custom_type === "single"}
-              />
-              옵션 선택 · 하나만 선택
-            </label>
-            <p className="text-xs text-gray-500">
-              맛/옵션 항목은 [카테고리 관리]에서 등록·수정합니다.
-            </p>
-          </div>
-        )}
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="option_enabled"
+            defaultChecked={product?.option_enabled ?? false}
+          />
+          옵션 선택 받기 (여러 개 선택 가능)
+        </label>
+        <p className="text-xs text-gray-500">
+          맛/옵션 항목은 [카테고리 관리]에서 등록·수정합니다.
+        </p>
       </div>
 ```
 
@@ -962,7 +1019,7 @@ Expected: PASS
 
 ```bash
 git add components/admin/ProductForm.tsx
-git commit -m "feat: add customization controls to product form"
+git commit -m "feat: add customization toggles to product form"
 ```
 
 ---
@@ -971,11 +1028,11 @@ git commit -m "feat: add customization controls to product form"
 
 **Files:**
 - Modify: `lib/data/orders.ts` (`OrderWriteInput`, insert)
-- Modify: `actions/orders.ts` (선택 항목 검증 + 스냅샷)
+- Modify: `actions/orders.ts` (종류별 검증 + 스냅샷)
 
 - [ ] **Step 1: `OrderWriteInput` + insert 수정**
 
-`lib/data/orders.ts`:
+`lib/data/orders.ts` import 변경:
 
 ```typescript
 import type { Order, SelectedChoice } from "@/lib/supabase/types";
@@ -989,36 +1046,46 @@ import type { Order, SelectedChoice } from "@/lib/supabase/types";
 
 `createOrder` 의 `.insert({...})` 에 추가: `selected_choices: input.selectedChoices,`
 
-- [ ] **Step 2: `actions/orders.ts` 에서 검증 + 스냅샷 생성**
+- [ ] **Step 2: `actions/orders.ts` 검증 + 스냅샷 생성**
 
 상단 import 추가:
 
 ```typescript
-import { validateSelectedChoices } from "@/lib/customization";
+import { validateChoiceSelection } from "@/lib/customization";
 import { getChoicesByCategory } from "@/lib/data/category-choices";
+import type { SelectedChoice } from "@/lib/supabase/types";
 ```
 
-폼 읽기(다른 `formData.get` 들과 함께):
+다른 `formData.get` 들과 함께 폼 읽기:
 
 ```typescript
-  const selectedLabels = formData.getAll("selected_choice").map(String);
+  const selectedFlavors = formData.getAll("selected_flavor").map(String);
+  const selectedOptions = formData.getAll("selected_option").map(String);
 ```
 
-`getProductWithImages` 로 product 를 얻은 뒤(이미 존재), 그 아래에 검증 추가:
+`getProductWithImages` 로 product 를 얻은 뒤(이미 존재, `if (!product ...)` 체크 다음), 검증 추가:
 
 ```typescript
-  let selectedChoices: { label: string; price: number }[] = [];
-  if (product.custom_type !== "none" && product.category_id) {
+  const selectedChoices: SelectedChoice[] = [];
+  if ((product.flavor_enabled || product.option_enabled) && product.category_id) {
     const choices = await getChoicesByCategory(supabase, product.category_id);
-    const result = validateSelectedChoices(product.custom_type, selectedLabels, choices);
-    if (!result.ok) {
-      return { ok: false, errors: { choices: result.error } };
+
+    if (product.flavor_enabled) {
+      const flavors = choices.filter((c) => c.kind === "flavor");
+      const result = validateChoiceSelection(selectedFlavors, flavors);
+      if (!result.ok) return { ok: false, errors: { choices: result.error } };
+      selectedChoices.push(...result.snapshot);
     }
-    selectedChoices = result.snapshot;
+    if (product.option_enabled) {
+      const options = choices.filter((c) => c.kind === "option");
+      const result = validateChoiceSelection(selectedOptions, options);
+      if (!result.ok) return { ok: false, errors: { choices: result.error } };
+      selectedChoices.push(...result.snapshot);
+    }
   }
 ```
 
-`createOrder` 호출에 추가: `selectedChoices,`
+`createOrder` 호출 객체에 추가: `selectedChoices,`
 
 - [ ] **Step 3: 타입체크**
 
@@ -1028,7 +1095,7 @@ Expected: PASS
 - [ ] **Step 4: 전체 테스트**
 
 Run: `npm test`
-Expected: PASS (기존 + 신규 통과)
+Expected: PASS
 
 - [ ] **Step 5: Commit**
 
@@ -1043,10 +1110,10 @@ git commit -m "feat: validate and store selected choices on order"
 
 **Files:**
 - Create: `components/customer/ProductCustomizer.tsx`
-- Modify: `components/customer/OrderForm.tsx` (커스터마이저 렌더 + props)
-- Modify: `app/(customer)/products/[id]/order/page.tsx` (카테고리 항목 로드 + 전달)
+- Modify: `components/customer/OrderForm.tsx`
+- Modify: `app/(customer)/products/[id]/order/page.tsx`
 
-- [ ] **Step 1: `ProductCustomizer` 작성**
+- [ ] **Step 1: `ProductCustomizer` 작성** (켜진 종류마다 다중선택 그룹)
 
 ```tsx
 "use client";
@@ -1054,45 +1121,94 @@ git commit -m "feat: validate and store selected choices on order"
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { sumChoicePrice } from "@/lib/customization";
-import type { CategoryChoice, CustomType } from "@/lib/supabase/types";
+import type { CategoryChoice } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
 export function ProductCustomizer({
-  customType,
-  choices,
+  flavorEnabled,
+  optionEnabled,
+  flavorChoices,
+  optionChoices,
   basePrice,
   error,
 }: {
-  customType: CustomType;
-  choices: CategoryChoice[];
+  flavorEnabled: boolean;
+  optionEnabled: boolean;
+  flavorChoices: CategoryChoice[];
+  optionChoices: CategoryChoice[];
   basePrice: number;
   error?: string;
 }) {
-  const [selected, setSelected] = useState<string[]>([]);
+  const [flavors, setFlavors] = useState<string[]>([]);
+  const [options, setOptions] = useState<string[]>([]);
 
-  if (customType === "none" || choices.length === 0) return null;
+  const showFlavor = flavorEnabled && flavorChoices.length > 0;
+  const showOption = optionEnabled && optionChoices.length > 0;
+  if (!showFlavor && !showOption) return null;
 
-  function toggle(label: string) {
-    if (customType === "single") {
-      setSelected((cur) => (cur[0] === label ? [] : [label]));
-      return;
-    }
-    setSelected((cur) =>
+  function toggle(setter: typeof setFlavors, label: string) {
+    setter((cur) =>
       cur.includes(label) ? cur.filter((l) => l !== label) : [...cur, label],
     );
   }
 
-  const snapshot = selected
-    .map((label) => choices.find((c) => c.label === label))
-    .filter((c): c is CategoryChoice => Boolean(c))
-    .map((c) => ({ label: c.label, price: c.price }));
+  const snapshot = [
+    ...flavors
+      .map((l) => flavorChoices.find((c) => c.label === l))
+      .filter((c): c is CategoryChoice => Boolean(c)),
+    ...options
+      .map((l) => optionChoices.find((c) => c.label === l))
+      .filter((c): c is CategoryChoice => Boolean(c)),
+  ].map((c) => ({ label: c.label, price: c.price, kind: c.kind }));
   const extra = sumChoicePrice(snapshot);
 
   return (
+    <div className="space-y-4">
+      {showFlavor && (
+        <ChoiceGroup
+          label="맛 선택 (여러 개 가능)"
+          name="selected_flavor"
+          choices={flavorChoices}
+          selected={flavors}
+          onToggle={(l) => toggle(setFlavors, l)}
+        />
+      )}
+      {showOption && (
+        <ChoiceGroup
+          label="옵션 선택 (여러 개 가능)"
+          name="selected_option"
+          choices={optionChoices}
+          selected={options}
+          onToggle={(l) => toggle(setOptions, l)}
+        />
+      )}
+      <p className="text-sm text-gray-600">
+        추가 금액 +{extra.toLocaleString()}원 · 예상 합계{" "}
+        {(basePrice + extra).toLocaleString()}원
+      </p>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+function ChoiceGroup({
+  label,
+  name,
+  choices,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  name: string;
+  choices: CategoryChoice[];
+  selected: string[];
+  onToggle: (label: string) => void;
+}) {
+  return (
     <div>
-      <Label>{customType === "single" ? "옵션 선택" : "맛 선택 (여러 개 가능)"}</Label>
-      {selected.map((label) => (
-        <input key={label} type="hidden" name="selected_choice" value={label} />
+      <Label>{label}</Label>
+      {selected.map((value) => (
+        <input key={value} type="hidden" name={name} value={value} />
       ))}
       <div className="mt-1 grid grid-cols-2 gap-2">
         {choices.map((choice) => {
@@ -1102,7 +1218,7 @@ export function ProductCustomizer({
               key={choice.id}
               type="button"
               aria-pressed={active}
-              onClick={() => toggle(choice.label)}
+              onClick={() => onToggle(choice.label)}
               className={cn(
                 "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
                 active
@@ -1120,11 +1236,6 @@ export function ProductCustomizer({
           );
         })}
       </div>
-      <p className="mt-1 text-sm text-gray-600">
-        추가 금액 +{extra.toLocaleString()}원 · 예상 합계{" "}
-        {(basePrice + extra).toLocaleString()}원
-      </p>
-      {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );
 }
@@ -1132,23 +1243,27 @@ export function ProductCustomizer({
 
 - [ ] **Step 2: `OrderForm` 에 커스터마이저 연결**
 
-`OrderForm` props 변경 + import:
+import 추가:
 
 ```typescript
 import { ProductCustomizer } from "@/components/customer/ProductCustomizer";
 import type { CategoryChoice, Product } from "@/lib/supabase/types";
 ```
 
+props 변경:
+
 ```typescript
 export function OrderForm({
   product,
-  choices,
+  flavorChoices,
+  optionChoices,
   closedWeekdays,
   closedDates,
   blockedByDate,
 }: {
   product: Product;
-  choices: CategoryChoice[];
+  flavorChoices: CategoryChoice[];
+  optionChoices: CategoryChoice[];
   closedWeekdays: number[];
   closedDates: string[];
   blockedByDate: Record<string, string[]>;
@@ -1159,8 +1274,10 @@ export function OrderForm({
 
 ```tsx
       <ProductCustomizer
-        customType={product.custom_type}
-        choices={choices}
+        flavorEnabled={product.flavor_enabled}
+        optionEnabled={product.option_enabled}
+        flavorChoices={flavorChoices}
+        optionChoices={optionChoices}
         basePrice={product.price}
         error={state?.errors?.choices}
       />
@@ -1168,24 +1285,30 @@ export function OrderForm({
 
 - [ ] **Step 3: 주문 페이지에서 카테고리 항목 로드 + 전달**
 
-`app/(customer)/products/[id]/order/page.tsx`:
-
-import 추가:
+`app/(customer)/products/[id]/order/page.tsx` import 추가:
 
 ```typescript
 import { getChoicesByCategory } from "@/lib/data/category-choices";
 ```
 
-product 조회 후, `Promise.all` 에 항목 조회 추가(또는 별도 await). product 의 category_id 가 있고 custom_type !== "none" 일 때만 로드:
+product 조회 + `notFound` 체크 후, 항목 로드(맛/옵션 분리):
 
 ```typescript
-  const choices =
-    product.category_id && product.custom_type !== "none"
-      ? await getChoicesByCategory(supabase, product.category_id)
-      : [];
+  const customizable =
+    !!product.category_id && (product.flavor_enabled || product.option_enabled);
+  const choices = customizable
+    ? await getChoicesByCategory(supabase, product.category_id as string)
+    : [];
+  const flavorChoices = choices.filter((c) => c.kind === "flavor");
+  const optionChoices = choices.filter((c) => c.kind === "option");
 ```
 
-`<OrderForm>` 에 `choices={choices}` 추가.
+`<OrderForm>` 에 추가:
+
+```tsx
+        flavorChoices={flavorChoices}
+        optionChoices={optionChoices}
+```
 
 - [ ] **Step 4: 타입체크 + 빌드**
 
@@ -1196,7 +1319,7 @@ Expected: PASS
 
 ```bash
 git add components/customer/ProductCustomizer.tsx components/customer/OrderForm.tsx "app/(customer)/products/[id]/order/page.tsx"
-git commit -m "feat: customer customization picker on order form"
+git commit -m "feat: customer flavor/option picker on order form"
 ```
 
 ---
@@ -1208,7 +1331,7 @@ git commit -m "feat: customer customization picker on order form"
 
 - [ ] **Step 1: 선택 항목 표시 추가**
 
-`레터링` `<p>` 위 또는 아래에 삽입(요청 메모 위가 적절):
+`레터링` `<p>` 위(요청 메모보다 위)에 삽입:
 
 ```tsx
               {order.selected_choices.length > 0 && (
@@ -1240,6 +1363,6 @@ git commit -m "feat: show selected choices in admin order list"
 ---
 
 ## 마무리 확인
-- [ ] 마이그레이션 `0007_customization.sql` 적용 안내(사용자 직접 적용).
+- [ ] 마이그레이션 `0007_customization.sql` 적용(사용자 직접).
 - [ ] `npm test` 전체 통과, `npm run build` 통과.
-- [ ] 수동 확인: 카테고리 항목 추가/수정/삭제 → 상품 폼 커스텀 체크 → 주문서에서 선택·가격 합계 → `/admin/orders` 선택 항목 표시.
+- [ ] 수동 확인: 카테고리에서 맛/옵션 항목 추가·수정·삭제 → 상품 폼에서 맛/옵션 토글 → 주문서에서 두 그룹 다중선택·가격 합계 → `/admin/orders` 선택 항목 표시.

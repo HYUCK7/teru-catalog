@@ -17,19 +17,27 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useActionState, useState } from "react";
-import type { Category } from "@/lib/supabase/types";
+import { useActionState, useState, useTransition } from "react";
 import {
   addCategory,
   removeCategory,
   renameCategory,
   saveCategorySortOrders,
+  setCategoryDesignEnabled,
 } from "@/actions/categories";
+import { CategoryChoiceManager } from "@/components/admin/CategoryChoiceManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { Category, CategoryChoice } from "@/lib/supabase/types";
 import { GripVertical } from "lucide-react";
 
-export function CategoryManager({ categories }: { categories: Category[] }) {
+export function CategoryManager({
+  categories,
+  choicesByCategory,
+}: {
+  categories: Category[];
+  choicesByCategory: Record<string, CategoryChoice[]>;
+}) {
   const [state, action, pending] = useActionState(addCategory, null);
   const [items, setItems] = useState(categories);
   const [message, setMessage] = useState("");
@@ -97,7 +105,7 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
       </form>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       {message && <p className="text-sm text-red-600">{message}</p>}
-      <form action={saveCategorySortOrders} className="space-y-3">
+      <div className="space-y-3">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -112,6 +120,7 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
                 <SortableCategoryRow
                   key={category.id}
                   category={category}
+                  choices={choicesByCategory[category.id] ?? []}
                   onRename={handleRename}
                   onRemove={handleRemove}
                 />
@@ -120,24 +129,35 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
           </SortableContext>
         </DndContext>
         {items.length > 0 && (
-          <div className="flex justify-end">
+          <form action={saveCategorySortOrders} className="flex justify-end">
+            {items.map((category) => (
+              <input
+                key={category.id}
+                type="hidden"
+                name="category_id"
+                value={category.id}
+              />
+            ))}
             <Button type="submit">카테고리 순서 저장</Button>
-          </div>
+          </form>
         )}
-      </form>
+      </div>
     </div>
   );
 }
 
 function SortableCategoryRow({
   category,
+  choices,
   onRename,
   onRemove,
 }: {
   category: Category;
+  choices: CategoryChoice[];
   onRename: (category: Category, name: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
 }) {
+  const [isPending, startTransition] = useTransition();
   const {
     attributes,
     listeners,
@@ -154,33 +174,49 @@ function SortableCategoryRow({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className={`flex items-center gap-2 rounded border bg-white p-2 ${
+      className={`rounded border bg-white p-2 ${
         isDragging ? "relative z-10 opacity-70 shadow-sm" : ""
       }`}
     >
-      <input type="hidden" name="category_id" value={category.id} />
-      <button
-        type="button"
-        aria-label={`${category.name} 순서 변경 핸들`}
-        className="flex size-11 cursor-grab touch-none items-center justify-center rounded text-gray-400 select-none hover:bg-gray-100 hover:text-gray-600 active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="size-5" />
-      </button>
-      <Input
-        defaultValue={category.name}
-        className="flex-1"
-        onBlur={(event) => onRename(category, event.target.value)}
-      />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => onRemove(category.id)}
-      >
-        삭제
-      </Button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label={`${category.name} 순서 변경 핸들`}
+          className="flex size-11 cursor-grab touch-none items-center justify-center rounded text-gray-400 select-none hover:bg-gray-100 hover:text-gray-600 active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="size-5" />
+        </button>
+        <Input
+          defaultValue={category.name}
+          className="flex-1"
+          onBlur={(event) => onRename(category, event.target.value)}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onRemove(category.id)}
+        >
+          삭제
+        </Button>
+      </div>
+      <label className="mt-2 flex items-center gap-2 pl-11 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          defaultChecked={category.design_enabled}
+          disabled={isPending}
+          onChange={(event) => {
+            const checked = event.currentTarget.checked;
+            startTransition(() => {
+              void setCategoryDesignEnabled(category.id, checked);
+            });
+          }}
+        />
+        디자인 선택 사용
+      </label>
+      <CategoryChoiceManager categoryId={category.id} choices={choices} />
     </li>
   );
 }

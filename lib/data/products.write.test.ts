@@ -23,9 +23,19 @@ describe("createProduct", () => {
       categoryId: "c1",
       description: "설명",
       isVisible: true,
+      flavorEnabled: true,
+      optionEnabled: false,
     });
 
-    expect(insert).toHaveBeenCalled();
+    expect(insert).toHaveBeenCalledWith({
+      name: "셔츠",
+      price: 1000,
+      category_id: "c1",
+      description: "설명",
+      is_visible: true,
+      flavor_enabled: true,
+      option_enabled: false,
+    });
     expect(row.id).toBe("p1");
   });
 
@@ -39,6 +49,8 @@ describe("createProduct", () => {
         categoryId: "c1",
         description: "",
         isVisible: true,
+        flavorEnabled: false,
+        optionEnabled: false,
       }),
     ).rejects.toThrow("fail");
   });

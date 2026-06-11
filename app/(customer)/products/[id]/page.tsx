@@ -4,6 +4,7 @@ import { ProductGallery } from "@/components/customer/ProductGallery";
 import { getProductWithImages } from "@/lib/data/products";
 import { getSettings } from "@/lib/data/settings";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,13 @@ export default async function ProductDetailPage({
         <p className="whitespace-pre-wrap text-gray-700">
           {product.description}
         </p>
-        <div className="pt-4">
+        <div className="space-y-2 pt-4">
+          <Link
+            href={`/products/${product.id}/order`}
+            className="block rounded bg-black py-3 text-center text-white"
+          >
+            주문하기
+          </Link>
           <ContactButtons settings={settings} />
         </div>
       </div>

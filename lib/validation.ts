@@ -45,3 +45,33 @@ export function validateSettingsInput(input: {
     ? ok()
     : fail({ shop_name: "가게명을 입력하세요." });
 }
+
+export function validateOrderInput(input: {
+  customerName: string;
+  phone: string;
+  quantity: number;
+  pickupDate: string;
+  pickupTime: string;
+}): ValidationResult {
+  const errors: Record<string, string> = {};
+
+  if (!input.customerName.trim()) {
+    errors.customerName = "주문자 이름을 입력하세요.";
+  }
+  if (!input.phone.trim()) errors.phone = "연락처를 입력하세요.";
+  if (
+    !Number.isFinite(input.quantity) ||
+    !Number.isInteger(input.quantity) ||
+    input.quantity < 1
+  ) {
+    errors.quantity = "수량은 1개 이상이어야 합니다.";
+  }
+  if (!input.pickupDate.trim()) {
+    errors.pickupDate = "픽업 날짜를 선택하세요.";
+  }
+  if (!input.pickupTime.trim()) {
+    errors.pickupTime = "픽업 시간을 선택하세요.";
+  }
+
+  return Object.keys(errors).length ? fail(errors) : ok();
+}

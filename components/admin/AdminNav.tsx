@@ -18,6 +18,7 @@ export function AdminNav() {
       </Link>
       <Link href="/admin/categories">카테고리</Link>
       <Link href="/admin/products">상품</Link>
+      <Link href="/admin/orders">주문</Link>
       <form action={logout} className="ml-auto">
         <Button type="submit" variant="outline" size="sm">
           로그아웃

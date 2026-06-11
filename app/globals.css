@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "react-day-picker/style.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -49,7 +50,7 @@
 }
 
 :root {
-  --font-sans: "Gamja Flower", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Chiron GoRound TC", ui-sans-serif, system-ui, sans-serif;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -129,3 +130,13 @@
     @apply font-sans;
   }
 }
+
+/* react-day-picker 액센트를 테마 토큰에 맞춤.
+   선택된 날짜는 내부 투명 + primary 테두리(원)만 — 날짜 숫자가 그대로 보임. */
+.rdp-calendar {
+  --rdp-accent-color: var(--primary);
+  --rdp-today-color: var(--primary);
+  --rdp-day-width: 2.25rem;
+  --rdp-day-height: 2.25rem;
+}
+

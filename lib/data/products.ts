@@ -11,6 +11,8 @@ export type ProductWriteInput = {
   categoryId: string;
   description: string;
   isVisible: boolean;
+  flavorEnabled: boolean;
+  optionEnabled: boolean;
 };
 
 export async function getVisibleProductsByCategory(
@@ -83,6 +85,8 @@ export async function createProduct(
       category_id: input.categoryId,
       description: input.description,
       is_visible: input.isVisible,
+      flavor_enabled: input.flavorEnabled,
+      option_enabled: input.optionEnabled,
     })
     .select()
     .single();
@@ -105,6 +109,8 @@ export async function updateProduct(
       category_id: input.categoryId,
       description: input.description,
       is_visible: input.isVisible,
+      flavor_enabled: input.flavorEnabled,
+      option_enabled: input.optionEnabled,
     })
     .eq("id", id);
 

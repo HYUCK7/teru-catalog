@@ -1,6 +1,9 @@
 import { vi } from "vitest";
 
-type QueryResult = { data: unknown; error: { message?: string } | null };
+type QueryResult = {
+  data: unknown;
+  error: { message?: string; code?: string } | null;
+};
 
 export function makeQuery(result: QueryResult) {
   const query: Record<string, unknown> = {};
@@ -8,7 +11,9 @@ export function makeQuery(result: QueryResult) {
 
   query.select = vi.fn(chain);
   query.eq = vi.fn(chain);
+  query.in = vi.fn(chain);
   query.order = vi.fn(chain);
+  query.limit = vi.fn(chain);
   query.single = vi.fn(() => Promise.resolve(result));
   query.then = (onfulfilled: (value: QueryResult) => unknown) =>
     Promise.resolve(result).then(onfulfilled);

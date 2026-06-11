@@ -123,6 +123,28 @@ export function ProductForm({
         노출하기
       </label>
 
+      <div className="space-y-2 rounded border p-3">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            name="flavor_enabled"
+            defaultChecked={product?.flavor_enabled ?? false}
+          />
+          맛 선택 받기 (다중)
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            name="option_enabled"
+            defaultChecked={product?.option_enabled ?? false}
+          />
+          옵션 선택 받기 (다중)
+        </label>
+        <p className="text-xs text-gray-500">
+          맛과 옵션 항목은 카테고리 관리에서 등록합니다.
+        </p>
+      </div>
+
       <Button type="submit" disabled={pending}>
         {pending ? "저장 중..." : "저장"}
       </Button>

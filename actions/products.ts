@@ -26,12 +26,22 @@ export async function saveProduct(
   const categoryId = String(formData.get("category_id") ?? "");
   const description = String(formData.get("description") ?? "");
   const isVisible = formData.get("is_visible") === "on";
+  const flavorEnabled = formData.get("flavor_enabled") === "on";
+  const optionEnabled = formData.get("option_enabled") === "on";
   const validation = validateProductInput({ name, price, categoryId });
 
   if (!validation.ok) return { ok: false, errors: validation.errors };
 
   const supabase = await createClient();
-  const input = { name, price, categoryId, description, isVisible };
+  const input = {
+    name,
+    price,
+    categoryId,
+    description,
+    isVisible,
+    flavorEnabled,
+    optionEnabled,
+  };
   let id = productId;
 
   if (id) {

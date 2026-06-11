@@ -36,6 +36,17 @@ export async function renameCategory(id: string, name: string) {
   return { ok: true, error: "" };
 }
 
+export async function setCategoryDesignEnabled(
+  id: string,
+  designEnabled: boolean,
+) {
+  const supabase = await createClient();
+  await updateCategory(supabase, id, { design_enabled: designEnabled });
+  revalidatePath("/admin/categories");
+  revalidatePath("/menu");
+  return { ok: true, error: "" };
+}
+
 export async function removeCategory(id: string) {
   const supabase = await createClient();
 
