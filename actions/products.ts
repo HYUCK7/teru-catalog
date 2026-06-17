@@ -9,6 +9,7 @@ import {
   deleteProductImage,
   getNextProductImageSortOrder,
   updateProduct,
+  updateProductImageSortOrders,
   updateProductSortOrders,
 } from "@/lib/data/products";
 import { createClient } from "@/lib/supabase/server";
@@ -95,6 +96,21 @@ export async function saveProductSortOrders(formData: FormData) {
   revalidatePath("/menu");
   revalidatePath("/admin/products");
   redirect("/admin/products");
+}
+
+export async function saveProductImageSortOrders(
+  productId: string,
+  orderedImageIds: string[],
+) {
+  const updates = orderedImageIds.map((id, index) => ({
+    id,
+    sortOrder: index,
+  }));
+
+  const supabase = await createClient();
+  await updateProductImageSortOrders(supabase, updates);
+  revalidatePath(`/admin/products/${productId}`);
+  revalidatePath(`/products/${productId}`);
 }
 
 export async function removeImage(imageId: string, productId: string) {

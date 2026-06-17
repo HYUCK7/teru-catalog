@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { removeImage, saveProduct } from "@/actions/products";
+import { saveProduct } from "@/actions/products";
 import { ImageUploader } from "@/components/admin/ImageUploader";
+import { ProductImageGrid } from "@/components/admin/ProductImageGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,23 +27,9 @@ export function ProductForm({
       <div>
         <Label>상품 사진</Label>
         <div className="my-2 flex flex-wrap gap-2">
-          {product?.images.map((image) => (
-            <div key={image.id} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={image.image_url}
-                alt=""
-                className="h-20 w-20 rounded object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => removeImage(image.id, product.id)}
-                className="absolute -top-1 -right-1 rounded-full bg-red-600 px-1 text-xs text-white"
-              >
-                x
-              </button>
-            </div>
-          ))}
+          {product && (
+            <ProductImageGrid productId={product.id} images={product.images} />
+          )}
           {newUrls.map((url) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
