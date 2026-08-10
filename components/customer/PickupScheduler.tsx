@@ -5,7 +5,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { formatDateValue, getPickupDateRange } from "@/lib/pickup-date";
 import { PICKUP_TIME_SLOTS } from "@/lib/pickup-time";
-import { cn } from "@/lib/utils";
 
 // "YYYY-MM-DD" → 로컬 Date (캘린더 disabled 매처용)
 function parseLocalDate(value: string): Date {
@@ -31,7 +30,9 @@ export function PickupScheduler({
   const noneSelectable = min > max; // 12월엔 올해 안에 선택 가능한 날이 없음
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedTime, setSelectedTime] = useState<string>(
+    PICKUP_TIME_SLOTS[0],
+  );
 
   const selectedDateValue = selectedDate ? formatDateValue(selectedDate) : "";
   const blockedTimes = selectedDateValue
@@ -40,10 +41,14 @@ export function PickupScheduler({
 
   function onSelectDate(date: Date | undefined) {
     setSelectedDate(date);
-    // 새 날짜에서 막힌 시간이면 선택 해제
+    // 새 날짜에서 막힌 시간이면 예약 가능한 첫 시간으로 옮김
     const value = date ? formatDateValue(date) : "";
     const blocked = value ? (blockedByDate[value] ?? []) : [];
-    if (selectedTime && blocked.includes(selectedTime)) setSelectedTime("");
+    if (blocked.includes(selectedTime)) {
+      setSelectedTime(
+        PICKUP_TIME_SLOTS.find((s) => !blocked.includes(s)) ?? "",
+      );
+    }
   }
 
   return (
@@ -86,37 +91,32 @@ export function PickupScheduler({
       </div>
 
       <div>
-        <Label>픽업 시간</Label>
+        <Label htmlFor="pickup_time_select">픽업 시간</Label>
         {!selectedDateValue ? (
           <p className="mt-1 text-sm text-gray-500">
             먼저 픽업 날짜를 선택해 주세요.
           </p>
         ) : (
-          <div className="mt-1 grid grid-cols-4 gap-2">
+          <select
+            id="pickup_time_select"
+            value={selectedTime}
+            onChange={(event) => setSelectedTime(event.target.value)}
+            className="mt-1 block w-full rounded border p-2"
+          >
+            {!selectedTime && (
+              <option value="" disabled>
+                예약 가능한 시간이 없어요
+              </option>
+            )}
             {PICKUP_TIME_SLOTS.map((slot) => {
               const blocked = blockedTimes.includes(slot);
-              const active = slot === selectedTime;
               return (
-                <button
-                  key={slot}
-                  type="button"
-                  disabled={blocked}
-                  aria-pressed={active}
-                  onClick={() => setSelectedTime(slot)}
-                  className={cn(
-                    "rounded-lg border py-2 text-sm font-medium transition-colors",
-                    blocked
-                      ? "cursor-not-allowed border-border bg-muted text-gray-400 line-through"
-                      : active
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-foreground hover:bg-muted",
-                  )}
-                >
-                  {slot}
-                </button>
+                <option key={slot} value={slot} disabled={blocked}>
+                  {blocked ? `${slot} (예약 불가)` : slot}
+                </option>
               );
             })}
-          </div>
+          </select>
         )}
         {timeError && <p className="mt-1 text-sm text-red-600">{timeError}</p>}
       </div>

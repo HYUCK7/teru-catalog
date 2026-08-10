@@ -1,26 +1,26 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { isDateClosed, isTimeBlocked } from "@/lib/availability";
 import { sumChoicePrice, validateChoiceSelection } from "@/lib/customization";
+import { getBlockedTimes, getClosedDates } from "@/lib/data/availability";
+import { getCategoryById } from "@/lib/data/categories";
+import { getChoicesByCategory } from "@/lib/data/category-choices";
+import { createOrder, setOrderStatus } from "@/lib/data/orders";
+import { getProductWithImages } from "@/lib/data/products";
+import { getSettings } from "@/lib/data/settings";
 import {
   isDesignSelectionRequired,
   validateDesignSelection,
 } from "@/lib/design-selection";
-import { getBlockedTimes, getClosedDates } from "@/lib/data/availability";
-import { getChoicesByCategory } from "@/lib/data/category-choices";
-import { getCategoryById } from "@/lib/data/categories";
-import { createOrder, setOrderStatus } from "@/lib/data/orders";
 import { isOrderStatus } from "@/lib/order-status";
-import { getProductWithImages } from "@/lib/data/products";
-import { getSettings } from "@/lib/data/settings";
 import { isPickupDateAllowed } from "@/lib/pickup-date";
 import { isPickupTimeAllowed } from "@/lib/pickup-time";
 import { createClient } from "@/lib/supabase/server";
 import type { SelectedChoice } from "@/lib/supabase/types";
 import { validateOrderInput } from "@/lib/validation";
+import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 type SubmitResult = { ok: boolean; errors: Record<string, string> };
 
@@ -59,7 +59,7 @@ export async function submitOrder(
   }
   if (pickupTime && !errors.pickupTime && !isPickupTimeAllowed(pickupTime)) {
     errors.pickupTime =
-      "픽업 시간은 11:00 ~ 18:30, 30분 간격으로만 선택할 수 있어요.";
+      "픽업 시간은 10:00 ~ 22:00, 30분 간격으로만 선택할 수 있어요.";
   }
 
   const supabase = await createClient();
